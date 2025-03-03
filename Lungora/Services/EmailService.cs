@@ -12,31 +12,36 @@ namespace Lungora.Services
 {
     public class EmailService : IEmailService
     {
+        private readonly IConfiguration configuration;
+        public EmailService(IConfiguration configuration)
+        {
+            this.configuration = configuration;
+        }
         public async Task SendEmailAsync(EmailMetadata emailMetadata)
         {
             try
             {
-                //var fromMail = _configuration["EmailSettings:EmailFrom"];
-                //var password = _configuration["EmailSettings:EmailPassword"];
-                //var host = _configuration["EmailSettings:EmailHost"];
+                var fromMail = configuration["EmailSettings:EmailFrom"];
+                var password = configuration["EmailSettings:EmailPassword"];
+                var host = configuration["EmailSettings:EmailHost"];
 
                 var toMail = emailMetadata.ToAddress;
                 var subject = emailMetadata.Subject;
                 var body = emailMetadata.Body;
 
                 var email = new MimeMessage();
-                email.From.Add(MailboxAddress.Parse("ah8455545@gmail.com"));
+                email.From.Add(MailboxAddress.Parse(fromMail));
                 email.To.Add(MailboxAddress.Parse(toMail));
                 email.Subject = subject;
                 email.Body = new TextPart(TextFormat.Html) { Text = body };
 
                 using var smtp = new SmtpClient();
-               await smtp.ConnectAsync("smtp.gmail.com", 587, MailKit.Security.SecureSocketOptions.StartTls);
-               await smtp.AuthenticateAsync("ah8455545@gmail.com", "byek lqlv pnvm ydwi");
+                await smtp.ConnectAsync(host, 587, MailKit.Security.SecureSocketOptions.StartTls);
+                await smtp.AuthenticateAsync(fromMail, password);
 
-               await smtp.SendAsync(email);
+                await smtp.SendAsync(email);
 
-               await smtp.DisconnectAsync(true);
+                await smtp.DisconnectAsync(true);
             }
             catch (Exception ex)
             {
