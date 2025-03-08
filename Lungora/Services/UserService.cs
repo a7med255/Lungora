@@ -48,6 +48,7 @@ namespace Lungora.Services
                 Email = model.Email,
                 UserName = model.Email,
                 Name=model.Name,
+                ImageUser= "https://asset.cloudinary.com/deoayl2hl/a5fa82954f2dc2a8b2743c5b50f08809",
             };
 
             var result = await userManager.CreateAsync(user, model.Password);
@@ -80,7 +81,9 @@ namespace Lungora.Services
                 IsAuthenticated = true,
                 Roles = new List<string> { "User" },
                 Token = new JwtSecurityTokenHandler().WriteToken(jwtSecurityToken),
-                Username = user.UserName
+                Username = user.UserName,
+                RefreshToken = refreshToken.Token,
+                RefreshTokenExpiration = refreshToken.ExpiresOn
             };
         }
 

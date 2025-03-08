@@ -12,6 +12,8 @@ using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using Org.BouncyCastle.Asn1.Ocsp;
 using Microsoft.AspNetCore.Authentication;
+using Lungora.Dtos.ArticleDtos;
+using Lungora.Services;
 
 namespace Lungora.Controllers
 {
@@ -22,14 +24,16 @@ namespace Lungora.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IUserService userService;
         private readonly IEmailService emailService;
+        private readonly IImageService imageService;
         private readonly API_Resonse response;
 
         public AuthController(UserManager<ApplicationUser> userManager, IUserService userService,
-            IEmailService emailService)
+            IEmailService emailService,IImageService imageService)
         {
             this.userManager = userManager;
             this.userService = userService;
             this.emailService = emailService;
+            this.imageService = imageService;
             response = new API_Resonse();
         }
 
@@ -342,6 +346,7 @@ namespace Lungora.Controllers
                     .SelectMany(v => v.Errors)
                     .Select(e => e.ErrorMessage)
                     .ToList();
+                response.Result=string.Empty;
                 return BadRequest(response);
             }
 
@@ -352,6 +357,7 @@ namespace Lungora.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not authenticated");
+                response.Result = string.Empty;
                 return Unauthorized(response);
             }
 
@@ -362,16 +368,73 @@ namespace Lungora.Controllers
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.Errors = new List<string>();
+                response.Result = string.Empty;
                 foreach (var err in res.Errors) response.Errors.Add(err.Description);
                 return BadRequest(response);
             }
 
-            user.TokenVersion++;
             await userManager.UpdateAsync(user);
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
+            response.Result = new { message = "Password Changed successfully" };
             return Ok(response);
+        }
+        [HttpPost("EditInfo")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserInfo(EditInfoDTO editInfoDTO)
+        {
+
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+                return BadRequest(response);
+            }
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not Authenticated.");
+                return Unauthorized(response);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found.");
+                return NotFound(response);
+            }
+
+            string imageUrl = null;
+            if (editInfoDTO.ImageUser != null && editInfoDTO.ImageUser.Length > 0)
+            {
+                imageUrl = await imageService.UploadOneImageAsync(editInfoDTO.ImageUser, "Users");
+            }
+
+            user.Name = editInfoDTO.FullName;
+            user.ImageUser = imageUrl;
+
+            var result = await userManager.UpdateAsync(user);
+            if (result.Succeeded)
+            {
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+
+            response.IsSuccess = false;
+            response.StatusCode = HttpStatusCode.BadRequest;
+            foreach (var error in result.Errors) response.Errors.Add(error.Description);
+            return BadRequest(response);
         }
 
         [HttpPost("LogOutAll")]
@@ -396,6 +459,7 @@ namespace Lungora.Controllers
             {
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
+                response.Result = new { Message = "User logged out All devices successfully" };
                 return Ok(response);
             }
 

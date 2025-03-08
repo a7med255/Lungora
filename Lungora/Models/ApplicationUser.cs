@@ -14,6 +14,7 @@ namespace Lungora.Models
         [Required]
         [MaxLength(100)]
         public string Name { get; set; }
+        public string ImageUser { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int TokenVersion { get; set; } = 1;
         [MaxLength(4)]

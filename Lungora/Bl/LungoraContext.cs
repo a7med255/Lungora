@@ -22,15 +22,19 @@ namespace Lungora.Bl
         {
             base.OnModelCreating(modelBuilder);
 
-
-           
-                
+            modelBuilder.Entity<Article>()
+                .HasOne(c => c.Category)
+                .WithMany(a => a.Articles)
+                .HasForeignKey(c => c.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
 
-       
 
-        public DbSet<ApplicationUser> Users { get; set; }
+
+        public virtual DbSet<ApplicationUser> Users { get; set; }
+        public virtual DbSet<Article> TbArticles { get; set; }
+        public virtual DbSet<Category> TbCategories { get; set; }
 
 
     }

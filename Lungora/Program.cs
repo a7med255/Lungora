@@ -1,5 +1,7 @@
+using CloudinaryDotNet;
 using Lungora.Bl;
 using Lungora.Bl.Interfaces;
+using Lungora.Bl.Repositories;
 using Lungora.JWT;
 using Lungora.Models;
 using Lungora.Services;
@@ -31,6 +33,9 @@ builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IArticle, ClsArticles>();
+builder.Services.AddScoped<ICategory, ClsCategories>();
 
 
 
@@ -116,7 +121,7 @@ builder.Services.AddSwaggerGen(c =>
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
-        Type = SecuritySchemeType.Http,
+        Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
@@ -142,8 +147,18 @@ builder.Services.AddSwaggerGen(c =>
 
 
 
+var cloudinarySettings = builder.Configuration.GetSection("Cloudinary");
+var cloudinary = new Cloudinary(new Account(
+    cloudinarySettings["CloudName"],
+    cloudinarySettings["ApiKey"],
+    cloudinarySettings["ApiSecret"]
+));
+
+builder.Services.AddSingleton(cloudinary);
 
 var app = builder.Build();
+
+
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())

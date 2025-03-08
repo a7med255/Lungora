@@ -5,24 +5,24 @@
 namespace Lungora.Migrations
 {
     /// <inheritdoc />
-    public partial class addtokenversion2 : Migration
+    public partial class AddImage : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<int>(
-                name: "TokenVersion",
+            migrationBuilder.AddColumn<string>(
+                name: "ImageUser",
                 table: "AspNetUsers",
-                type: "int",
+                type: "nvarchar(max)",
                 nullable: false,
-                defaultValue: 0);
+                defaultValue: "");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "TokenVersion",
+                name: "ImageUser",
                 table: "AspNetUsers");
         }
     }
