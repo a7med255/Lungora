@@ -48,7 +48,7 @@ namespace Lungora.Services
                 Email = model.Email,
                 UserName = model.Email,
                 Name=model.Name,
-                ImageUser= "https://asset.cloudinary.com/deoayl2hl/a5fa82954f2dc2a8b2743c5b50f08809",
+                ImageUser= "https://res.cloudinary.com/deoayl2hl/image/upload/v1742340954/Users/f446ff10-d23b-42ed-bb90-be18f88d9f01_2025_03_19_profile_avatar_brm2oi.jpg",
             };
 
             var result = await userManager.CreateAsync(user, model.Password);
@@ -64,8 +64,12 @@ namespace Lungora.Services
 
                 return new AuthModel { Message = errors };
             }
+            if (!await roleManager.RoleExistsAsync("User"))
+            {
+                await roleManager.CreateAsync(new IdentityRole("User"));
+            }
 
-            await userManager.AddToRoleAsync(user, "User");
+             await userManager.AddToRoleAsync(user, "User");
 
             var jwtSecurityToken = await CreateJwtToken(user);
 

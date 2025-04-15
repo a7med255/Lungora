@@ -22,7 +22,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(
     options =>
     {
         //options.SignIn.RequireConfirmedAccount = true;
-        options.Password.RequiredLength = 8;
+        options.Password.RequiredLength = 9;
         options.Password.RequireNonAlphanumeric = true;
         options.Password.RequireUppercase = true;
         options.User.RequireUniqueEmail = true;
@@ -34,8 +34,15 @@ builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IImageService, ImageService>();
+builder.Services.AddScoped<IModelService, ModelService>();
 builder.Services.AddScoped<IArticle, ClsArticles>();
 builder.Services.AddScoped<ICategory, ClsCategories>();
+builder.Services.AddScoped<IDoctor, ClsDoctors>();
+builder.Services.AddScoped<IWorkingHour, ClsWorkingHours>();
+builder.Services.AddHttpClient("AIService", client =>
+{
+    client.BaseAddress = new Uri("https://fuel-worn-happiness-noted.trycloudflare.com/predict");
+});
 
 
 
@@ -100,8 +107,8 @@ builder.Services.AddAuthentication(options =>
 });
 builder.Services.AddAuthorization();
 
-
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -145,6 +152,16 @@ builder.Services.AddSwaggerGen(c =>
 
 });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()  // ?????? ??? ????
+                  .AllowAnyHeader()  // ?????? ??? ????
+                  .AllowAnyMethod(); // ?????? ??? ??? ?? ??????? (GET, POST, PUT, DELETE, ...)
+        });
+});
 
 
 var cloudinarySettings = builder.Configuration.GetSection("Cloudinary");
@@ -158,16 +175,16 @@ builder.Services.AddSingleton(cloudinary);
 
 var app = builder.Build();
 
-
+app.UseCors("AllowAll");
 
 // Configure the HTTP request pipeline.
 //if (app.Environment.IsDevelopment())
 //{
-    app.UseSwagger();
+app.UseSwagger();
     app.UseSwaggerUI();
 //}
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseAuthentication();
 app.UseAuthorization();

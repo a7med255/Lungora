@@ -37,7 +37,7 @@ namespace Lungora.Bl.Repositories
             {
                 var Article = await context.TbArticles.FirstOrDefaultAsync(a => a.Id == id);
                 if (Article == null)
-                {
+                {   
                     return new ArticleDetailDto();
                 }
 
@@ -56,7 +56,7 @@ namespace Lungora.Bl.Repositories
         }
         public async Task<Article> UpdateAsync(int Id, Article Article)
         {
-                var UpdatedArticle = await GetSingleAsync(x => x.Id == Id);
+                var UpdatedArticle = await GetSingleAsync(x => x.Id == Id); 
                 if (UpdatedArticle is not null)
                 {
                     UpdatedArticle.Title =Article.Title;

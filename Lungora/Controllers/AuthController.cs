@@ -380,25 +380,14 @@ namespace Lungora.Controllers
             response.Result = new { message = "Password Changed successfully" };
             return Ok(response);
         }
-        [HttpPost("EditInfo")]
+        [HttpGet("GetDataUser")]
         [Authorize]
-        public async Task<IActionResult> UpdateUserInfo(EditInfoDTO editInfoDTO)
+        public async Task<IActionResult> GetDataUser()
         {
-
-            if (!ModelState.IsValid)
-            {
-                response.IsSuccess = false;
-                response.StatusCode = HttpStatusCode.BadRequest;
-                response.Errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-                return BadRequest(response);
-            }
-
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId is null)
             {
+                response.Result = string.Empty;
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.Unauthorized;
                 response.Errors.Add("User is not Authenticated.");
@@ -408,6 +397,42 @@ namespace Lungora.Controllers
             var user = await userManager.FindByIdAsync(userId);
             if (user is null)
             {
+                response.Result = string.Empty;
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors.Add("User not found.");
+                return NotFound(response);
+            }
+
+            var data = new GetDataUserDto
+            {
+                FullName=user.Name,
+                ImageUser=user.ImageUser
+            };
+            response.Result= data;
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            return Ok(response);
+        }
+        [HttpPost("EditInfo")]
+        [Authorize]
+        public async Task<IActionResult> UpdateUserInfo([FromForm] EditInfoDTO editInfoDTO)
+        {
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId is null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.Unauthorized;
+                response.Errors.Add("User is not Authenticated.");
+                response.Result = string.Empty;
+                return Unauthorized(response);
+            }
+
+            var user = await userManager.FindByIdAsync(userId);
+            if (user is null)
+            {
+                response.Result = string.Empty;
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.NotFound;
                 response.Errors.Add("User not found.");
@@ -419,19 +444,33 @@ namespace Lungora.Controllers
             {
                 imageUrl = await imageService.UploadOneImageAsync(editInfoDTO.ImageUser, "Users");
             }
+            else
+            {
+                imageUrl=user.ImageUser;
+            }
 
-            user.Name = editInfoDTO.FullName;
+            if(editInfoDTO.FullName==null && editInfoDTO.ImageUser==null)
+            {
+                response.Result = string.Empty;
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                return Ok(response);
+            }
+
+            user.Name = editInfoDTO.FullName is null? user.Name: editInfoDTO.FullName;
             user.ImageUser = imageUrl;
 
             var result = await userManager.UpdateAsync(user);
             if (result.Succeeded)
             {
+                response.Result = new { message = "Update User Successfully" };
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
                 return Ok(response);
             }
 
             response.IsSuccess = false;
+            response.Result=string.Empty;
             response.StatusCode = HttpStatusCode.BadRequest;
             foreach (var error in result.Errors) response.Errors.Add(error.Description);
             return BadRequest(response);

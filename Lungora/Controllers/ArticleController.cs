@@ -1,7 +1,5 @@
 ﻿using Azure;
 using Lungora.Bl.Interfaces;
-using Lungora.Bl.Repositories;
-using Lungora.Dtos.ArticleDtos;
 using Lungora.Dtos.ArticleDtos;
 using Lungora.Models;
 using Lungora.Services;
@@ -42,7 +40,7 @@ namespace Lungora.Controllers
                 response.Result = new { Message = ex.Message };
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
-                return Ok(response);
+                return BadRequest(response);
             }
         }
         [HttpGet("GetArticleById/{Id}")]
@@ -53,6 +51,7 @@ namespace Lungora.Controllers
                 var Article = await ClsArticles.GetSingleAsync(x => x.Id == Id);
                 if (Article is null)
                 {
+                    response.Result = string.Empty;
                     response.IsSuccess = false;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.Errors.Add("Article does not exist.");
@@ -80,6 +79,7 @@ namespace Lungora.Controllers
                 var Article = await ClsArticles.GetById(Id);
                 if (Article is null)
                 {
+                    response.Result = string.Empty;
                     response.IsSuccess = false;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.Errors.Add("Article does not exist.");
@@ -127,6 +127,7 @@ namespace Lungora.Controllers
                     Title = ArticleDTO.Title,
                     Description = ArticleDTO.Description,
                     Content = ArticleDTO.Content,
+                    CategoryId = ArticleDTO.CategoryId,
                     CoverImage= imageUrl,
                     CreatedAt = DateTime.Now,
                     CreatedBy = userId,
@@ -139,6 +140,7 @@ namespace Lungora.Controllers
                 return Ok(response);
             }
 
+            response.Result = string.Empty;
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = ModelState.Values
@@ -172,6 +174,7 @@ namespace Lungora.Controllers
 
                     if (currentArticle is null)
                     {
+                        response.Result = string.Empty;
                         response.StatusCode = HttpStatusCode.NotFound;
                         response.IsSuccess = false;
                         response.Errors.Add("Article not found!");
@@ -200,6 +203,7 @@ namespace Lungora.Controllers
                 }
                 catch (Exception ex)
                 {
+                    response.Result = string.Empty;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.IsSuccess = false;
                     response.Errors.Add(ex.Message);
@@ -207,6 +211,7 @@ namespace Lungora.Controllers
                 }
             }
 
+            response.Result = string.Empty;
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = ModelState.Values
@@ -225,6 +230,7 @@ namespace Lungora.Controllers
 
 
                 await ClsArticles.RemoveAsync(a => a.Id == Id);
+
                 response.Result = new { message = "Removed Sucssfully" };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
@@ -232,6 +238,7 @@ namespace Lungora.Controllers
             }
             catch (Exception ex)
             {
+                response.Result = string.Empty;
                 response.StatusCode = HttpStatusCode.NotFound;
                 response.IsSuccess = false;
                 response.Errors.Add(ex.Message);
