@@ -44,6 +44,7 @@ namespace Lungora.Controllers
             return Ok(response);
         }
         [HttpGet("GetCategoryById/{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCategoryById(int Id)
         {
             try
@@ -51,6 +52,8 @@ namespace Lungora.Controllers
                 var category = await clsCategories.GetSingleAsync(x => x.Id == Id);
                 if (category is null)
                 {
+
+                    response.Result = string.Empty;
                     response.IsSuccess = false;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.Errors.Add("Category does not exist.");
@@ -63,6 +66,7 @@ namespace Lungora.Controllers
             }
             catch (Exception ex)
             {
+                response.Result = string.Empty;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
                 response.Errors.Add(ex.Message);
@@ -78,6 +82,7 @@ namespace Lungora.Controllers
 
                 if (category.CategoryName is null)
                 {
+                    response.Result = string.Empty;
                     response.IsSuccess = false;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.Errors.Add("Category does not exist.");
@@ -90,12 +95,14 @@ namespace Lungora.Controllers
             }
             catch (Exception ex)
             {
+                response.Result = string.Empty;
                 response.StatusCode = HttpStatusCode.BadRequest;
                 response.IsSuccess = false;
                 response.Errors.Add(ex.Message);
                 return BadRequest(response);
             }
         }
+        
         [HttpPost("CreateCategory")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCategory(CategoryCreateDTO categoryDTO)
@@ -106,7 +113,7 @@ namespace Lungora.Controllers
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("FullName");
 
             if (userId == null)
                 return Unauthorized("User ID not found");
@@ -128,6 +135,7 @@ namespace Lungora.Controllers
                 return Ok(response);
             }
 
+            response.Result = string.Empty;
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = ModelState.Values
@@ -149,7 +157,7 @@ namespace Lungora.Controllers
                 if (existsName is not null && existsName.Id != Id)
                     ModelState.AddModelError("", "Category already exists!");
             }
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("FullName");
 
             if (userId == null)
                 return Unauthorized("User ID not found");
@@ -161,6 +169,7 @@ namespace Lungora.Controllers
 
                     if (currentCategory is null)
                     {
+                        response.Result = string.Empty;
                         response.StatusCode = HttpStatusCode.NotFound;
                         response.IsSuccess = false;
                         response.Errors.Add("Category not found!");
@@ -182,6 +191,7 @@ namespace Lungora.Controllers
                 }
                 catch (Exception ex)
                 {
+                    response.Result = string.Empty;
                     response.StatusCode = HttpStatusCode.NotFound;
                     response.IsSuccess = false;
                     response.Errors.Add(ex.Message);
@@ -189,6 +199,7 @@ namespace Lungora.Controllers
                 }
             }
 
+            response.Result = string.Empty;
             response.IsSuccess = false;
             response.StatusCode = HttpStatusCode.BadRequest;
             response.Errors = ModelState.Values
@@ -214,6 +225,7 @@ namespace Lungora.Controllers
             }
             catch (Exception ex)
             {
+                response.Result = string.Empty;
                 response.StatusCode = HttpStatusCode.NotFound;
                 response.IsSuccess = false;
                 response.Errors.Add(ex.Message);

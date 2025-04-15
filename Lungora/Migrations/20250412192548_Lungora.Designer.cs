@@ -4,6 +4,7 @@ using Lungora.Bl;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Lungora.Migrations
 {
     [DbContext(typeof(LungoraContext))]
-    partial class LungoraContextModelSnapshot : ModelSnapshot
+    [Migration("20250412192548_Lungora")]
+    partial class Lungora
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -33,9 +36,6 @@ namespace Lungora.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("CreatedDate")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -276,41 +276,6 @@ namespace Lungora.Migrations
                     b.ToTable("TbDoctors");
                 });
 
-            modelBuilder.Entity("Lungora.Models.UserAIResult", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ImagePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsSave")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("Prediction")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserAIResults");
-                });
-
             modelBuilder.Entity("Lungora.Models.WorkingHour", b =>
                 {
                     b.Property<int>("Id")
@@ -533,17 +498,6 @@ namespace Lungora.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Lungora.Models.UserAIResult", b =>
-                {
-                    b.HasOne("Lungora.Models.ApplicationUser", "User")
-                        .WithMany("AIResults")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Lungora.Models.WorkingHour", b =>
                 {
                     b.HasOne("Lungora.Models.Doctor", "Doctor")
@@ -604,11 +558,6 @@ namespace Lungora.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("Lungora.Models.ApplicationUser", b =>
-                {
-                    b.Navigation("AIResults");
                 });
 
             modelBuilder.Entity("Lungora.Models.Category", b =>

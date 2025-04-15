@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace Lungora.Models
 {
@@ -30,6 +31,7 @@ namespace Lungora.Models
 
         [ForeignKey(nameof(CategoryId))]
         public int CategoryId { get; set; }
+        [JsonIgnore]
         public virtual Category Category { get; set; }
     }
 }

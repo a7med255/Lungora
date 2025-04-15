@@ -15,11 +15,13 @@ namespace Lungora.Models
         [MaxLength(100)]
         public string Name { get; set; }
         public string ImageUser { get; set; }
+        public DateTime? CreatedDate { get; set; }
         public bool IsDeleted { get; set; } = false;
         public int TokenVersion { get; set; } = 1;
         [MaxLength(4)]
         public string? PasswordResetCode { get; set; }
         public DateTime? PasswordResetCodeExpiry { get; set; }
         public List<RefreshToken>? RefreshTokens { get; set; }
+        public virtual ICollection<UserAIResult> AIResults { get; set; }
     }
 }

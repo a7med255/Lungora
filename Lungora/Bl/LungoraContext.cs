@@ -23,10 +23,26 @@ namespace Lungora.Bl
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.Entity<Article>()
-                .HasOne(c => c.Category)
+                .HasOne(c => c.Category) //category 1=>m Articles
                 .WithMany(a => a.Articles)
                 .HasForeignKey(c => c.CategoryId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Doctor>()
+                .HasOne(c => c.Category) //category 1=>m Doctors
+                .WithMany(a => a.Doctors)
+                .HasForeignKey(c => c.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WorkingHour>()
+              .HasOne(w => w.Doctor)//Doctor 1=>m WorkingHours
+              .WithMany(d => d.WorkingHours)
+              .HasForeignKey(w => w.DoctorId)
+              .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WorkingHour>()
+            .HasIndex(w => new { w.DoctorId, w.DayOfWeek })
+            .IsUnique();
         }
 
 
@@ -35,6 +51,9 @@ namespace Lungora.Bl
         public virtual DbSet<ApplicationUser> Users { get; set; }
         public virtual DbSet<Article> TbArticles { get; set; }
         public virtual DbSet<Category> TbCategories { get; set; }
+        public virtual DbSet<Doctor> TbDoctors { get; set; }
+        public virtual DbSet<WorkingHour> TbWorkingHours { get; set; }
+        public virtual DbSet<UserAIResult> UserAIResults { get; set; }
 
 
     }

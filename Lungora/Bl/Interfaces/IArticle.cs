@@ -8,6 +8,7 @@ namespace Lungora.Bl.Interfaces
     {
         Task<IEnumerable<Article>> GetAllAsync();
         Task<ArticleDetailDto> GetById(int id);
+        Task<List<Article>> GetByCategoryId(int CategoryId);
         Task<Article> UpdateAsync(int Id, Article article);
     }
 }

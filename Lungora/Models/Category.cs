@@ -19,5 +19,7 @@ namespace Lungora.Models
         public string? UpdatedBy { get; set; }
         [JsonIgnore]
         public ICollection<Article> Articles { get; set; }
+        [JsonIgnore]
+        public ICollection<Doctor> Doctors { get; set; }
     }
 }

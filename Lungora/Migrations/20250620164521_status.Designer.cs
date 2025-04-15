@@ -4,6 +4,7 @@ using Lungora.Bl;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Lungora.Migrations
 {
     [DbContext(typeof(LungoraContext))]
-    partial class LungoraContextModelSnapshot : ModelSnapshot
+    [Migration("20250620164521_status")]
+    partial class status
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -284,6 +287,10 @@ namespace Lungora.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AIResult")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -294,8 +301,9 @@ namespace Lungora.Migrations
                     b.Property<bool>("IsSave")
                         .HasColumnType("bit");
 
-                    b.Property<int>("Prediction")
-                        .HasColumnType("int");
+                    b.Property<string>("Prediction")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
