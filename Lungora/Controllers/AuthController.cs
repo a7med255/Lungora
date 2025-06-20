@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -14,6 +14,7 @@ using Org.BouncyCastle.Asn1.Ocsp;
 using Microsoft.AspNetCore.Authentication;
 using Lungora.Dtos.ArticleDtos;
 using Lungora.Services;
+using Lungora.Bl.Repositories;
 
 namespace Lungora.Controllers
 {
@@ -28,7 +29,7 @@ namespace Lungora.Controllers
         private readonly API_Resonse response;
 
         public AuthController(UserManager<ApplicationUser> userManager, IUserService userService,
-            IEmailService emailService,IImageService imageService)
+            IEmailService emailService, IImageService imageService)
         {
             this.userManager = userManager;
             this.userService = userService;
@@ -39,9 +40,9 @@ namespace Lungora.Controllers
 
         [HttpPost("Register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody]RegisterDTO registerDTO)
+        public async Task<IActionResult> Register([FromBody] RegisterDTO registerDTO)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
@@ -77,8 +78,50 @@ namespace Lungora.Controllers
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.Created;
             response.Result = new {
-                Token = res.Token ,
+                Token = res.Token,
+                RefreshToken = res.RefreshToken,
                 RefreshTokenExpiration = res.RefreshTokenExpiration,
+            };
+            return Ok(response);
+        }
+        [HttpPost("AddAdmin")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddAdmin([FromBody] RegisterDTO registerDTO)
+        {
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors = new()
+                {
+                    "Not Validate"
+                };
+                return BadRequest(response);
+            }
+            if (registerDTO.Password != registerDTO.ConfirmPassword)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add("Passwords do not match");
+                return BadRequest(response);
+            }
+
+            var res = await userService.CreateAdminAsync(registerDTO);
+
+            if (!res.IsAuthenticated)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.Errors.Add(res.Message);
+                return BadRequest(response);
+            }
+
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.Created;
+            response.Result = new
+            {
+                Message = res.Message,
             };
             return Ok(response);
         }
@@ -115,7 +158,7 @@ namespace Lungora.Controllers
             int refreshTokenValidity = loginDTO.RememberMe ? 30 : 7;
             if (!string.IsNullOrEmpty(res.RefreshToken) && loginDTO.RememberMe)
             {
-                res.RefreshTokenExpiration = DateTime.Now.AddDays(refreshTokenValidity);
+                res.RefreshTokenExpiration = DateTime.UtcNow.AddDays(refreshTokenValidity);
                 SetRefreshTokenInCookie(res.RefreshToken, res.RefreshTokenExpiration);
             }
 
@@ -123,10 +166,108 @@ namespace Lungora.Controllers
             response.StatusCode = HttpStatusCode.OK;
             response.Result = new {
                 Token = res.Token,
+                RefreshToken = res.RefreshToken,
                 RefreshTokenExpiration = res.RefreshTokenExpiration,
             };
             return Ok(response);
         }
+
+        [HttpGet("GetAllUsersAsync")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetAllUsersAsync()
+        {
+            var users = await userService.GetAllUsersAsync();
+
+            if (users == null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors = new List<string> { "No users found." };
+                response.Result = string.Empty;
+
+                return NotFound(response);
+            }
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            response.Result = new { Users = users };
+            return Ok(response);
+        }
+
+        [HttpPut("EditUser/{UserId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditUser(string UserId, EditUser editUser)
+        {
+            if (!ModelState.IsValid)
+            {
+                response.IsSuccess = false;
+                response.StatusCode=HttpStatusCode.BadRequest;
+                response.Result = string.Empty;
+                response.Errors= ModelState.Values
+                    .SelectMany(v => v.Errors)
+                    .Select(e => e.ErrorMessage)
+                    .ToList();
+
+                return BadRequest(response);
+            }   
+
+            var user = await userService.GetSingleAsync(u => u.Id == UserId);
+            if (user == null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.NotFound;
+                response.Errors = new List<string> { "User not found." };
+                response.Result = string.Empty;
+
+                return NotFound(response);
+            }
+
+            if (!string.IsNullOrEmpty(editUser.Email))
+            {
+                var existingUserWithEmail = await userService.GetSingleAsync(u => u.Email == editUser.Email && u.Id != UserId);
+                if (existingUserWithEmail != null)
+                {
+                    response.IsSuccess = false;
+                    response.StatusCode = HttpStatusCode.Conflict;
+                    response.Errors = new List<string> { "This email is already in use by another user." };
+                    response.Result = string.Empty;
+
+                    return Conflict(response);
+                }
+            }
+
+            string imageUrl = null;
+            if (editUser.ImageUser != null && editUser.ImageUser.Length > 0)
+            {
+                imageUrl = await imageService.UploadOneImageAsync(editUser.ImageUser, "Users");
+            }
+            else
+            {
+                imageUrl = user.ImageUser;
+            }
+            user.Name = editUser.FullName ?? user.Name;
+            user.Email = editUser.Email ?? user.Email;
+            user.IsDeleted = (!editUser.IsActive) ?? user.IsDeleted;
+            user.ImageUser = imageUrl;
+
+            var updateResult = await userService.UpdateUserAsync(UserId,imageUrl, editUser);
+
+            if (updateResult==null)
+            {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                response.Errors = new List<string> { "An error occurred while updating the user." };
+                response.Result = string.Empty;
+
+                return StatusCode(500, response);
+            }
+
+            response.IsSuccess = true;
+            response.StatusCode = HttpStatusCode.OK;
+            response.Result = new {Message = "User updated successfully." };
+            return Ok(response);
+        }
+       
         [HttpDelete("delete")]
         [Authorize]
         public async Task<IActionResult> DeleteAccount()
@@ -146,9 +287,32 @@ namespace Lungora.Controllers
             }
             catch (Exception ex)
             {
+                response.IsSuccess = false;
+                response.StatusCode = HttpStatusCode.InternalServerError;
+                response.Errors.Add("An error occurred");
+                return BadRequest(response);
+            }
+        }
+
+        [HttpDelete("RemoveUser/{UserId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RemoveUser(string UserId)
+        {
+            try
+            {
+               
+                await userService.RemoveAsync(a=>a.Id==UserId);
+                response.IsSuccess = true;
+                response.StatusCode = HttpStatusCode.OK;
+                response.Result = (new { message = "This Account Removed it" });
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
                 response.IsSuccess=false;
                 response.StatusCode = HttpStatusCode.InternalServerError;
                 response.Errors.Add("An error occurred");
+                response.Result = string.Empty;
                 return BadRequest(response);
             }
         }
@@ -185,7 +349,7 @@ namespace Lungora.Controllers
             var confirmationCode = new Random().Next(1000, 9999).ToString();
 
             user.PasswordResetCode = confirmationCode;
-            user.PasswordResetCodeExpiry = DateTime.Now.AddMinutes(5);
+            user.PasswordResetCodeExpiry = DateTime.UtcNow.AddMinutes(5);
             await userManager.UpdateAsync(user);
 
 
@@ -245,7 +409,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            if (user.PasswordResetCodeExpiry < DateTime.Now)
+            if (user.PasswordResetCodeExpiry < DateTime.UtcNow)
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
@@ -282,7 +446,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            if (user.PasswordResetCodeExpiry < DateTime.Now)
+            if (user.PasswordResetCodeExpiry < DateTime.UtcNow)
             {
                 response.IsSuccess = false;
                 response.StatusCode = HttpStatusCode.BadRequest;
@@ -407,7 +571,8 @@ namespace Lungora.Controllers
             var data = new GetDataUserDto
             {
                 FullName=user.Name,
-                ImageUser=user.ImageUser
+                ImageUser=user.ImageUser,
+                Email = user.Email
             };
             response.Result= data;
             response.IsSuccess = true;
@@ -545,7 +710,7 @@ namespace Lungora.Controllers
             if (activeToken != null)
             {
                 //activeToken.IsActive = false; 
-                activeToken.RevokedOn = DateTime.Now;
+                activeToken.RevokedOn = DateTime.UtcNow;
                 await userManager.UpdateAsync(user);
             }
 
@@ -610,6 +775,7 @@ namespace Lungora.Controllers
                 response.Result = new
                 {
                     Token = result.Token,
+                    RefreshToken = result.RefreshToken,
                     RefreshTokenExpiration = result.RefreshTokenExpiration,
                 };
                 return BadRequest(response);
@@ -622,6 +788,7 @@ namespace Lungora.Controllers
             response.Result = new
             {
                 Token = result.Token,
+                RefreshToken = result.RefreshToken,
                 RefreshTokenExpiration = result.RefreshTokenExpiration,
             };
             return Ok(response);
@@ -651,6 +818,7 @@ namespace Lungora.Controllers
             }
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
+            response.Result = new { Message = "Token revoked successfully" };
             return Ok(response);
         }
 
@@ -666,7 +834,7 @@ namespace Lungora.Controllers
                 Expires = expires,
                 Secure = true,
                 IsEssential = true,
-                SameSite = SameSiteMode.None
+                SameSite = SameSiteMode.None,
             };
 
             Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);

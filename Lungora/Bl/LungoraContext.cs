@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Lungora.Models;
@@ -53,6 +53,8 @@ namespace Lungora.Bl
         public virtual DbSet<Category> TbCategories { get; set; }
         public virtual DbSet<Doctor> TbDoctors { get; set; }
         public virtual DbSet<WorkingHour> TbWorkingHours { get; set; }
+        public virtual DbSet<UserAIResult> UserAIResults { get; set; }
+
 
     }
 }

@@ -14,7 +14,6 @@ namespace Lungora.Dtos.ArticleDtos
         [DataType(DataType.MultilineText)]
         public string Content { get; set; }
 
-        [Required]
-        public IFormFile CoverImage { get; set; }
+        public IFormFile ?CoverImage { get; set; }
     }
 }

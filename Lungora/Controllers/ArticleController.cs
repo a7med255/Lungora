@@ -1,5 +1,6 @@
-﻿using Azure;
+using Azure;
 using Lungora.Bl.Interfaces;
+using Lungora.Bl.Repositories;
 using Lungora.Dtos.ArticleDtos;
 using Lungora.Models;
 using Lungora.Services;
@@ -25,6 +26,7 @@ namespace Lungora.Controllers
             this.imageService = imageService;
         }
         [HttpGet("GetAllArticles")]
+        [Authorize]
         public async Task<IActionResult> GetAllArticles()
         {
             try
@@ -71,6 +73,28 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
         }
+        [HttpGet("GetArticlesByCategoryId/{CategoryId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> GetArticlesByCategoryId(int CategoryId)
+        {
+            try
+            {
+                var articles = await ClsArticles.GetByCategoryId(CategoryId);
+
+                response.Result = articles;
+                response.StatusCode = HttpStatusCode.OK;
+                response.IsSuccess = true;
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.Result = string.Empty;
+                response.StatusCode = HttpStatusCode.BadRequest;
+                response.IsSuccess = false;
+                response.Errors.Add(ex.Message);
+                return BadRequest(response);
+            }
+        }
         [HttpGet("GetArticleByIdWithMobile/{Id}")]
         public async Task<IActionResult> GetArticleByIdWithMobile(int Id)
         {
@@ -109,7 +133,7 @@ namespace Lungora.Controllers
             if (existsTitle is not null)
                 ModelState.AddModelError("", "Article already exists!");
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("FullName");
 
             if (userId == null)
                 return Unauthorized("User ID not found");
@@ -162,10 +186,14 @@ namespace Lungora.Controllers
                 if (existsName is not null && existsName.Id != Id)
                     ModelState.AddModelError("", "Article already exists!");
             }
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var Name = User.FindFirstValue("FullName");
 
-            if (userId == null)
+
+            if (Name == null)
                 return Unauthorized("User ID not found");
+
+
+
             if (ModelState.IsValid)
             {
                 try
@@ -185,15 +213,19 @@ namespace Lungora.Controllers
                     {
                         imageUrl = await imageService.UploadOneImageAsync(ArticleUpdateDTO.CoverImage, "Articles");
                     }
-                    Article Article = new Article
+                    else
                     {
-                        Title = ArticleUpdateDTO.Title,
-                        Content = ArticleUpdateDTO.Content,
-                        Description = ArticleUpdateDTO.Description,
-                        CoverImage=imageUrl,
-                        UpdatedAt = DateTime.Now,
-                        UpdatedBy = userId
-                    };
+                        imageUrl = currentArticle.CoverImage;
+                    }
+                        Article Article = new Article
+                        {
+                            Title = ArticleUpdateDTO.Title,
+                            Content = ArticleUpdateDTO.Content,
+                            Description = ArticleUpdateDTO.Description,
+                            CoverImage = imageUrl,
+                            UpdatedAt = DateTime.Now,
+                            UpdatedBy = Name
+                        };
                     await ClsArticles.UpdateAsync(Id, Article);
 
                     response.Result = Article;

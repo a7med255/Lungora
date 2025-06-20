@@ -6,5 +6,6 @@ namespace Lungora.Dtos.AuthDtos
     {
         public string FullName { get; set; }
         public string ImageUser { get; set; }
+        public string Email { get; set; }
     }
 }

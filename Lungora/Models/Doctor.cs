@@ -1,4 +1,4 @@
-﻿using Lungora.Models;
+using Lungora.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
@@ -58,11 +58,9 @@ namespace Lungora.Models
 
         public string? UpdatedBy { get; set; }
 
-
         [ForeignKey(nameof(CategoryId))]
         public int CategoryId { get; set; }
         public virtual Category Category { get; set; }
-        [JsonIgnore]
         public List<WorkingHour> WorkingHours { get; set; } = new List<WorkingHour>();
     }
 }

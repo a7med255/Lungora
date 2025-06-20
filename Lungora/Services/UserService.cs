@@ -1,4 +1,4 @@
-﻿    using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Lungora.Bl.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,17 +14,19 @@ using System.Diagnostics.SymbolStore;
 using Lungora.Bl;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Configuration;
+using Lungora.Bl.Repositories;
+using System.Net;
 
 namespace Lungora.Services
 {
-    public class UserService :  IUserService
+    public class UserService : Repository<ApplicationUser>  ,IUserService
     {
         private readonly LungoraContext context;
         private readonly RoleManager<IdentityRole> roleManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IConfiguration configuration;
         public UserService(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager,
-              IConfiguration configuration, LungoraContext context)
+              IConfiguration configuration, LungoraContext context) : base(context)
         {
             this.context = context;
             this.roleManager = roleManager;
@@ -90,6 +92,112 @@ namespace Lungora.Services
                 RefreshTokenExpiration = refreshToken.ExpiresOn
             };
         }
+        public async Task<AuthModel> CreateAdminAsync(RegisterDTO model)
+        {
+
+            var existingUser = await userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                return new AuthModel
+                {
+                    Message = "This email is already registered."
+                };
+            }
+
+            var user = new ApplicationUser
+            {
+                Email = model.Email,
+                UserName = model.Email,
+                Name = model.Name,
+                ImageUser = "https://res.cloudinary.com/deoayl2hl/image/upload/v1742340954/Users/f446ff10-d23b-42ed-bb90-be18f88d9f01_2025_03_19_profile_avatar_brm2oi.jpg"
+            };
+
+            var creationResult = await userManager.CreateAsync(user, model.Password);
+            if (!creationResult.Succeeded)
+            {
+                var errorMessages = string.Join(", ", creationResult.Errors.Select(e => e.Description));
+                return new AuthModel { Message = errorMessages };
+            }
+
+            var roleExists = await roleManager.RoleExistsAsync("Admin");
+            if (!roleExists)
+            {
+                await roleManager.CreateAsync(new IdentityRole("Admin"));
+            }
+
+            await userManager.AddToRoleAsync(user, "Admin");
+
+            return new AuthModel
+            {
+                Email = user.Email,
+                IsAuthenticated = true,
+                Roles = new List<string> { "Admin" },
+                Username = user.UserName,
+                Message = "Admin user created successfully."
+            };
+        }
+
+        public async Task<List<GetAllUsers>> GetAllUsersAsync()
+        {
+            var users = await context.Users
+                .ToListAsync();
+
+            var result = new List<GetAllUsers>();
+
+            foreach (var user in users)
+            {
+                var roles = await userManager.GetRolesAsync(user); // Get list of role names
+
+                result.Add(new GetAllUsers
+                {
+                    UserId = user.Id,
+                    Email = user.Email,
+                    FullName = user.Name,
+                    ImageUser = user.ImageUser,
+                    CreatedDate = user.CreatedDate,
+                    IsActive = !(user.IsDeleted),
+                    Roles = roles.ToList()
+                });
+            }
+
+            return result;
+        }
+        //name-email-Active-date-rolement
+
+        public async Task<ApplicationUser?> UpdateUserAsync(string userId,string imageUrl , EditUser updatedData)
+        {
+            var existingUser = await userManager.FindByIdAsync(userId);
+            if (existingUser == null)
+            {
+                return null;
+            }
+
+            // تحديث الحقول
+            existingUser.Name = updatedData.FullName ?? existingUser.Name;
+            existingUser.Email = updatedData.Email ?? existingUser.Email;
+            existingUser.UserName = updatedData.Email ?? existingUser.UserName;
+            existingUser.ImageUser = imageUrl;
+            existingUser.IsDeleted = !(updatedData.IsActive)??existingUser.IsDeleted;
+
+            var updateResult = await userManager.UpdateAsync(existingUser);
+            if (!updateResult.Succeeded)
+            {
+                return null;
+            }
+
+            var currentRoles = await userManager.GetRolesAsync(existingUser);
+            var removeRolesResult = await userManager.RemoveFromRolesAsync(existingUser, currentRoles);
+            var addRolesResult = await userManager.AddToRolesAsync(existingUser, updatedData.Roles);
+
+            if (!addRolesResult.Succeeded)
+            {
+                return null;
+            }
+
+
+           return existingUser;
+        }
+
 
         public async Task<AuthModel> GetTokenAsync(LoginDTO model)
         {
@@ -186,6 +294,7 @@ namespace Lungora.Services
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim("TokenVersion", user.TokenVersion.ToString()),
+                new Claim("FullName", user.Name.ToString()),
             }.Union(userClaims)
             .Union(roleClaims);
 

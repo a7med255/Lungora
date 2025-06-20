@@ -6,6 +6,7 @@ using Lungora.JWT;
 using Lungora.Models;
 using Lungora.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -41,7 +42,7 @@ builder.Services.AddScoped<IDoctor, ClsDoctors>();
 builder.Services.AddScoped<IWorkingHour, ClsWorkingHours>();
 builder.Services.AddHttpClient("AIService", client =>
 {
-    client.BaseAddress = new Uri("https://fuel-worn-happiness-noted.trycloudflare.com/predict");
+    client.BaseAddress = new Uri("https://lakes-warriors-received-easy.trycloudflare.com/predict");
 });
 
 
@@ -64,7 +65,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuer = true,
         ValidateAudience = true,
         ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
+        ValidateIssuerSigningKey = true,    
         ValidIssuer = builder.Configuration["JWT:Issuer"],
         ValidAudience = builder.Configuration["JWT:Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JWT:Key"])),
@@ -104,10 +105,27 @@ builder.Services.AddAuthentication(options =>
 
         }
     };
+}).AddCookie(options =>
+{
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always; 
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.None;
 });
 builder.Services.AddAuthorization();
 
 builder.Services.AddControllers();
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 10 * 1024 * 1024; // 10MB
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 10 * 1024 * 1024; // 10MB
+});
+
+
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -157,9 +175,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll",
         policy =>
         {
-            policy.AllowAnyOrigin()  // ?????? ??? ????
+            policy.WithOrigins("https://localhost:5173", "https://dashboard-seven-fawn-71.vercel.app") //  React app
                   .AllowAnyHeader()  // ?????? ??? ????
-                  .AllowAnyMethod(); // ?????? ??? ??? ?? ??????? (GET, POST, PUT, DELETE, ...)
+                  .AllowAnyMethod() // ?????? ??? ??? ?? ??????? (GET, POST, PUT, DELETE, ...)
+                  .AllowCredentials(); // Allow credentials (cookies, authorization headers, etc.)
         });
 });
 
@@ -184,7 +203,7 @@ app.UseSwagger();
     app.UseSwaggerUI();
 //}
 
-//app.UseHttpsRedirection();
+//app.UseHttpsRedirection(); 
 
 app.UseAuthentication();
 app.UseAuthorization();

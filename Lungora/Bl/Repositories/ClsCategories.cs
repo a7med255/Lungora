@@ -58,18 +58,19 @@ namespace Lungora.Bl.Repositories
                 return new CategoryWithArticles();
             }
         }
-        public async Task<Category> UpdateAsync(int Id, Category Article)
+
+        public async Task<Category> UpdateAsync(int Id, Category category)
         {
             var UpdatedCategory = await GetSingleAsync(x => x.Id == Id);
             if (UpdatedCategory is not null)
             {
-                UpdatedCategory.CategoryName = Article.CategoryName;
-                UpdatedCategory.UpdatedBy = Article.UpdatedBy;
+                UpdatedCategory.CategoryName = category.CategoryName;
+                UpdatedCategory.UpdatedBy = category.UpdatedBy;
                 UpdatedCategory.UpdatedAt= DateTime.Now;
 
                 context.Update(UpdatedCategory).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
                 await context.SaveChangesAsync();
-                return Article;
+                return category;
             }
             return new Category();
         }

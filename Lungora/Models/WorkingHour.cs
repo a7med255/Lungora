@@ -1,5 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Lungora.Models
 {
@@ -23,6 +24,7 @@ namespace Lungora.Models
         public int DoctorId { get; set; }
 
         [ForeignKey("DoctorId")]
+        [JsonIgnore]
         public Doctor Doctor { get; set; }
     }
 }

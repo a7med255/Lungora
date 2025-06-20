@@ -1,4 +1,4 @@
-﻿using Lungora.Bl.Interfaces;
+using Lungora.Bl.Interfaces;
 using Lungora.Dtos.CategoryDtos;
 using Lungora.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -44,6 +44,7 @@ namespace Lungora.Controllers
             return Ok(response);
         }
         [HttpGet("GetCategoryById/{Id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetCategoryById(int Id)
         {
             try
@@ -51,6 +52,7 @@ namespace Lungora.Controllers
                 var category = await clsCategories.GetSingleAsync(x => x.Id == Id);
                 if (category is null)
                 {
+
                     response.Result = string.Empty;
                     response.IsSuccess = false;
                     response.StatusCode = HttpStatusCode.NotFound;
@@ -100,6 +102,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
         }
+        
         [HttpPost("CreateCategory")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateCategory(CategoryCreateDTO categoryDTO)
@@ -110,7 +113,7 @@ namespace Lungora.Controllers
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
 
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("FullName");
 
             if (userId == null)
                 return Unauthorized("User ID not found");
@@ -154,7 +157,7 @@ namespace Lungora.Controllers
                 if (existsName is not null && existsName.Id != Id)
                     ModelState.AddModelError("", "Category already exists!");
             }
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var userId = User.FindFirstValue("FullName");
 
             if (userId == null)
                 return Unauthorized("User ID not found");

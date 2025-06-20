@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Lungora.Bl.Interfaces;
 using Lungora.Dtos.ArticleDtos;
 using Lungora.Dtos.CategoryDtos;
@@ -54,24 +54,46 @@ namespace Lungora.Bl.Repositories
                 return new ArticleDetailDto();
             }
         }
-        public async Task<Article> UpdateAsync(int Id, Article Article)
+        public async Task<List<Article>> GetByCategoryId(int CategoryId)
         {
-                var UpdatedArticle = await GetSingleAsync(x => x.Id == Id); 
-                if (UpdatedArticle is not null)
+            try
+            {
+                var Article = await context.TbArticles
+                                .Where(c => c.CategoryId == CategoryId)
+                                .ToListAsync();
+                if (Article == null)
                 {
-                    UpdatedArticle.Title =Article.Title;
-                    UpdatedArticle.Description =Article.Description;
-                    UpdatedArticle.UpdatedAt = Article.UpdatedAt;
-                    UpdatedArticle.Content =Article.Content;
-                    UpdatedArticle.CoverImage =Article.CoverImage;
-                    UpdatedArticle.UpdatedAt = DateTime.Now;
-                    context.Update(UpdatedArticle).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                    await context.SaveChangesAsync();
-                    return Article;
+                    return new List<Article>();
                 }
-            return new Article();
+
+                return Article;
+
+            }
+            catch
+            {
+                return new List<Article>();
+            }
         }
-        
+        public async Task<Article?> UpdateAsync(int id, Article updatedArticle)
+        {
+            var existingArticle = await GetSingleAsync(x => x.Id == id);
+            if (existingArticle is null)
+                return null;
+
+            // Update only fields that are allowed to change
+            existingArticle.Title = updatedArticle.Title;
+            existingArticle.Description = updatedArticle.Description;
+            existingArticle.Content = updatedArticle.Content;
+            existingArticle.CoverImage = updatedArticle.CoverImage;
+            existingArticle.UpdatedAt = DateTime.UtcNow; // UTC is recommended for consistency
+            existingArticle.UpdatedBy = updatedArticle.UpdatedBy;
+
+            context.TbArticles.Update(existingArticle); // EF automatically tracks the entity
+            await context.SaveChangesAsync();
+
+            return existingArticle;
+        }
+
 
     }
 }
