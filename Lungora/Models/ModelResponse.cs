@@ -1,4 +1,4 @@
-﻿namespace Lungora.Models
+namespace Lungora.Models
 {
     public class ModelResponse
     {

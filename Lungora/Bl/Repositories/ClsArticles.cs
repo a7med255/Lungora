@@ -1,4 +1,4 @@
-﻿using Azure;
+using Azure;
 using Lungora.Bl.Interfaces;
 using Lungora.Dtos.ArticleDtos;
 using Lungora.Dtos.CategoryDtos;

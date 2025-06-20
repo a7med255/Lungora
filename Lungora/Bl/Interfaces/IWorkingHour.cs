@@ -1,4 +1,4 @@
-﻿using Lungora.Models;
+using Lungora.Models;
 
 namespace Lungora.Bl.Interfaces
 {

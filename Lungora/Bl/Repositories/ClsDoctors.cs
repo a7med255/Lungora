@@ -1,4 +1,4 @@
-﻿using Lungora.Bl.Interfaces;
+using Lungora.Bl.Interfaces;
 using Lungora.Dtos.CategoryDtos;
 using Lungora.Dtos.DoctorsDtos;
 using Lungora.Models;

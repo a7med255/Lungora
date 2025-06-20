@@ -1,4 +1,4 @@
-﻿using Lungora.Dtos.Model_AIDtos;
+using Lungora.Dtos.Model_AIDtos;
 using Lungora.Models;
 
 namespace Lungora.Bl.Interfaces
