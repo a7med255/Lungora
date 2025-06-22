@@ -31,7 +31,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(
 
 builder.Services.Configure<JWT>(builder.Configuration.GetSection("JWT"));
 
-
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IImageService, ImageService>();

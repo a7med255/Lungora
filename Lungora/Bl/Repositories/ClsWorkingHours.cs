@@ -32,7 +32,7 @@ namespace Lungora.Bl.Repositories
                 return new List<WorkingHour>();
             }
         }
-        public async Task<WorkingHour?> UpdateAsync(int id, WorkingHour updatedWorkingHour)
+        public async Task<WorkingHour> UpdateAsync(int id, WorkingHour updatedWorkingHour)
         {
             var existingWorkingHour = await GetSingleAsync(x => x.Id == id);
             if (existingWorkingHour is null)
@@ -42,6 +42,7 @@ namespace Lungora.Bl.Repositories
             existingWorkingHour.DayOfWeek = updatedWorkingHour.DayOfWeek;
             existingWorkingHour.StartTime = updatedWorkingHour.StartTime;
             existingWorkingHour.EndTime = updatedWorkingHour.EndTime;
+            existingWorkingHour.DoctorId = updatedWorkingHour.DoctorId;
 
             if (!existingWorkingHour.IsValidTimeRange())
             {
@@ -50,7 +51,6 @@ namespace Lungora.Bl.Repositories
 
 
             context.TbWorkingHours.Update(existingWorkingHour); // EF automatically tracks the entity
-            await context.SaveChangesAsync();
 
             return existingWorkingHour;
         }

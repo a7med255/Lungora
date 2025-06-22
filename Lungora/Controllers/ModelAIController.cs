@@ -22,14 +22,12 @@ namespace Lungora.Controllers
     [ApiController]
     public class ModelAIController : ControllerBase
     {
-        private readonly IModelService _modelService;
-        private readonly IImageService imageService;
+        private readonly IUnitOfWork unitOfWork;
         private readonly API_Resonse response;
-        public ModelAIController(IModelService modelService, IImageService imageService)
+        public ModelAIController(IUnitOfWork unitOfWork)
         {
-            _modelService = modelService;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
-            this.imageService = imageService;
         }
         /// <summary>
         /// Upload image to AI model
@@ -44,7 +42,7 @@ namespace Lungora.Controllers
             try
             {
 
-                var modelResponse = await _modelService.SendFileToModelAsync(image);
+                var modelResponse = await unitOfWork.modelService.SendFileToModelAsync(image);
 
                 if (modelResponse.Response == false)
                 {
@@ -58,49 +56,61 @@ namespace Lungora.Controllers
                 {
                     if (modelResponse.is_upload)
                     {
-                       var imageUrl= await imageService.UploadOneImageAsync(image, modelResponse.predicted_label);
+                       var imageUrl= await unitOfWork.IImageService.UploadOneImageAsync(image, modelResponse.predicted_label);
+
                         var AI_Result = new UserAIResult();
+
                         AI_Result.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                         AI_Result.ImagePath = imageUrl;
                         AI_Result.CreatedAt = DateTime.UtcNow;
+
                         if (modelResponse.predicted_label=="covid")
                             AI_Result.Prediction = PredictionModel.Covid;
                         else if (modelResponse.predicted_label == "pneumonia")
                             AI_Result.Prediction = PredictionModel.Pneumonia;
                         else
                             AI_Result.Prediction = PredictionModel.Normal;
+
                         if (modelResponse.certain)
                         {
-                            response.Result = new { predicted = modelResponse.predicted_label, message = $"Clear signs of: {modelResponse.predicted_label.ToUpper()} were detected. Please consult a doctor for appropriate follow-up." };
+                            response.Result = new { predicted = modelResponse.predicted_label,
+                                message = $"Clear signs of: {modelResponse.predicted_label.ToUpper()} " +
+                                $"were detected. Please consult a doctor for appropriate follow-up." };
                             response.StatusCode = HttpStatusCode.OK;
                             response.IsSuccess = true;
                             AI_Result.Status = PredictionConfidence.High;
-                            await _modelService.AddAsync(AI_Result);
+                            await unitOfWork.modelService.AddAsync(AI_Result);
+                            await unitOfWork.SaveChangesAsync();
                             return Ok(response);
                         }
                         if (modelResponse.check_status)
                         {
-                            response.Result = new { predicted = modelResponse.predicted_label, message = "We recommend consulting a healthcare professional for further evaluation." };
+                            response.Result = new { predicted = modelResponse.predicted_label,
+                                message = "We recommend consulting a healthcare professional for further evaluation." };
                             response.StatusCode = HttpStatusCode.OK;
                             response.IsSuccess = true;
                             AI_Result.Status = PredictionConfidence.Medium;
-                            await _modelService.AddAsync(AI_Result);
+                            await unitOfWork.modelService.AddAsync(AI_Result);
+                            await unitOfWork.SaveChangesAsync();
                             return Ok(response);
                         }
                         else
                         {
-                            response.Result = new { predicted = modelResponse.predicted_label, message = "The result is unclear. Please consider retaking the scan or consulting a doctor." };
+                            response.Result = new { predicted = modelResponse.predicted_label, 
+                                message = "The result is unclear. Please consider retaking the scan or consulting a doctor." };
                             response.StatusCode = HttpStatusCode.OK;
                             response.IsSuccess = true;
                             AI_Result.Status = PredictionConfidence.Low;
-                            await _modelService.AddAsync(AI_Result);
+                            await unitOfWork.modelService.AddAsync(AI_Result);
+                            await unitOfWork.SaveChangesAsync();
                             return Ok(response);
                         }
                         
                     }
                     else
                     {
-                        response.Result = new { predicted = string.Empty, message = "Image does not chest x-ray." };
+                        response.Result = new { predicted = string.Empty, 
+                            message = "Image does not chest x-ray." };
                         response.StatusCode = HttpStatusCode.OK;
                         response.IsSuccess = true;
                         return Ok(response);
@@ -132,7 +142,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var Histories = await _modelService.GetAllAsync();
+                var Histories = await unitOfWork.modelService.GetAllAsync();
                 response.Result = new { History = Histories };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
@@ -152,7 +162,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var History = await _modelService.GetSingleAsync(x => x.Id == Id);
+                var History = await unitOfWork.modelService.GetSingleAsync(x => x.Id == Id);
                 if (History is null)
                 {
                     response.Result = string.Empty;
@@ -196,7 +206,8 @@ namespace Lungora.Controllers
             {
 
 
-                await _modelService.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.modelService.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.SaveChangesAsync();
 
                 response.Result = new { message = "Removed it Sucssfully" };
                 response.StatusCode = HttpStatusCode.OK;

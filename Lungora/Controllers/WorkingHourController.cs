@@ -15,11 +15,11 @@ namespace Lungora.Controllers
     [ApiController]
     public class WorkingHourController : ControllerBase
     {
-        private readonly IWorkingHour ClsWorkingHours;
+        private readonly IUnitOfWork unitOfWork;
         private readonly API_Resonse response;
-        public WorkingHourController(IWorkingHour workingHour)
+        public WorkingHourController(IUnitOfWork unitOfWork)
         {
-            ClsWorkingHours = workingHour;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
         }
 
@@ -45,7 +45,8 @@ namespace Lungora.Controllers
         {
             try
             {   
-                var WorkingHour = await ClsWorkingHours.GetAllByDoctorIdAsync(DoctorId);
+                var WorkingHour = await unitOfWork.ClsWorkingHours.GetAllByDoctorIdAsync(DoctorId);
+                WorkingHour = WorkingHour.OrderBy(a => a.DayOfWeek).ToList();
 
                 response.Result = WorkingHour;
                 response.StatusCode = HttpStatusCode.OK;
@@ -68,7 +69,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var WorkingHour = await ClsWorkingHours.GetSingleAsync(a=>a.Id==Id);
+                var WorkingHour = await unitOfWork.ClsWorkingHours.GetSingleAsync(a=>a.Id==Id);
                 if (WorkingHour == null)
                 {
                     response.Result = string.Empty;
@@ -97,21 +98,16 @@ namespace Lungora.Controllers
         public async Task<IActionResult> CreateWorkingHour(WorkingHourCreateDTO WorkingHourDTO)
         {
 
-            if (!string.IsNullOrWhiteSpace(WorkingHourDTO.DayOfWeek))
+            var exists = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.DayOfWeek == WorkingHourDTO.DayOfWeek && x.DoctorId==WorkingHourDTO.DoctorId);
+            if (exists is not null)
             {
-                var exists = await ClsWorkingHours.GetSingleAsync(
-                    x => x.DayOfWeek.Equals(WorkingHourDTO.DayOfWeek, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (exists is not null)
-                {
-                    response.Result = string.Empty;
-                    response.StatusCode = HttpStatusCode.Conflict;
-                    response.IsSuccess = false;
-                    response.Errors.Add("A working hour with the same DayOfWeek already exists.");
-                    return Conflict(response);
-                }
+                response.Result = string.Empty;
+                response.StatusCode = HttpStatusCode.Conflict;
+                response.IsSuccess = false;
+                response.Errors.Add("A working hour with the same DayOfWeek already exists.");
+                return Conflict(response);
             }
+
             if (ModelState.IsValid)
             {
                 WorkingHour WorkingHour = new WorkingHour
@@ -129,7 +125,8 @@ namespace Lungora.Controllers
                     response.Errors.Add("End time must be greater than start time.");
                     return BadRequest(response);
                 }
-                var model = await ClsWorkingHours.AddAsync(WorkingHour);
+                var model = await unitOfWork.ClsWorkingHours.AddAsync(WorkingHour);
+                await unitOfWork.SaveChangesAsync();
 
                 response.Result = model;
                 response.StatusCode = HttpStatusCode.Created;
@@ -163,24 +160,17 @@ namespace Lungora.Controllers
 
             try
             {
-                // Check if working hour with same DayOfWeek exists (excluding the current one)
-                if (!string.IsNullOrWhiteSpace(dto.DayOfWeek))
+                var exists = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.DayOfWeek == dto.DayOfWeek && x.DoctorId == dto.DoctorId);
+                if (exists is not null)
                 {
-                    var exists = await ClsWorkingHours.GetSingleAsync(
-                        x => x.DayOfWeek.Equals(dto.DayOfWeek, StringComparison.OrdinalIgnoreCase) && x.Id != id
-                    );
-
-                    if (exists is not null)
-                    {
-                        response.Result = string.Empty;
-                        response.StatusCode = HttpStatusCode.Conflict;
-                        response.IsSuccess = false;
-                        response.Errors.Add("A working hour with the same DayOfWeek already exists.");
-                        return Conflict(response);
-                    }
+                    response.Result = string.Empty;
+                    response.StatusCode = HttpStatusCode.Conflict;
+                    response.IsSuccess = false;
+                    response.Errors.Add("A working hour with the same DayOfWeek already exists.");
+                    return Conflict(response);
                 }
 
-                var current = await ClsWorkingHours.GetSingleAsync(x => x.Id == id);
+                var current = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.Id == id);
 
                 if (current is null)
                 {
@@ -195,7 +185,8 @@ namespace Lungora.Controllers
                 current.DayOfWeek = dto.DayOfWeek;
                 current.StartTime = dto.StartTime;
                 current.EndTime = dto.EndTime;
-                if(!current.IsValidTimeRange())
+                current.DoctorId = dto.DoctorId;
+                if (!current.IsValidTimeRange())
                 {
                     response.Result = string.Empty;
                     response.StatusCode = HttpStatusCode.BadRequest;
@@ -203,7 +194,8 @@ namespace Lungora.Controllers
                     response.Errors.Add("End time must be greater than start time.");
                     return BadRequest(response);
                 }
-                await ClsWorkingHours.UpdateAsync(id, current);
+                await unitOfWork.ClsWorkingHours.UpdateAsync(id, current);
+                await unitOfWork.SaveChangesAsync();
 
                 response.Result = current;
                 response.StatusCode = HttpStatusCode.OK;
@@ -228,7 +220,9 @@ namespace Lungora.Controllers
         {
             try
             {
-                await ClsWorkingHours.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.ClsWorkingHours.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.SaveChangesAsync();
+
                 response.Result = new { message = "Removed Sucssfully" };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;

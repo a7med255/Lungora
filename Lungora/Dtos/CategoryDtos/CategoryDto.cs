@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Lungora.Dtos.ArticleDtos;
+using System.ComponentModel.DataAnnotations;
 
 namespace Lungora.Dtos.CategoryDtos
 {
@@ -6,5 +7,7 @@ namespace Lungora.Dtos.CategoryDtos
     {
         public int Id { get; set; }
         public string? CategoryName { get; set; }
+        public List<ArticlesDto> Articles{ get; set; }
+
     }
 }

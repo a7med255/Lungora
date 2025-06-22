@@ -4,6 +4,7 @@ using Lungora.Bl;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Lungora.Migrations
 {
     [DbContext(typeof(LungoraContext))]
-    partial class LungoraContextModelSnapshot : ModelSnapshot
+    [Migration("20250622182704_updateDayOfWeektoenum")]
+    partial class updateDayOfWeektoenum
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -7,6 +7,8 @@ namespace Lungora.Bl.Interfaces
         Task<T> GetSingleAsync(Expression<Func<T, bool>> filter);
 
         Task<T> AddAsync(T Entity);
+        Task AddRangeAsync(IEnumerable<T> entities);
+
 
         Task RemoveAsync(Expression<Func<T, bool>> filter);
     }

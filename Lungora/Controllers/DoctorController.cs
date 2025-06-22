@@ -14,18 +14,12 @@ namespace Lungora.Controllers
     [ApiController]
     public class DoctorController : ControllerBase
     {
-        private readonly IDoctor ClsDoctors;
-        private readonly ICategory ClsCategories;
-        private readonly IWorkingHour ClsWorkingHours;
-        private readonly IImageService imageService;
+        private readonly IUnitOfWork unitOfWork;
         private readonly API_Resonse response;
-        public DoctorController(IDoctor doctor, IImageService imageService, ICategory category, IWorkingHour WorkingHour)
+        public DoctorController(IUnitOfWork unitOfWork)
         {
-            ClsDoctors = doctor;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
-            this.imageService = imageService;
-            ClsCategories = category;
-            ClsWorkingHours = WorkingHour;
         }
 
         [HttpGet("GetAllDoctors")]
@@ -34,8 +28,11 @@ namespace Lungora.Controllers
         {
             try
             {
-                var Doctors = await ClsDoctors.GetAll();
-                response.Result = new { Doctors = Doctors };
+                var Doctors = await unitOfWork.ClsDoctors.GetAll();
+                response.Result = new 
+                {
+                    Doctors = Doctors 
+                };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
                 return Ok(response);
@@ -52,7 +49,7 @@ namespace Lungora.Controllers
         [HttpGet("GetAllDoctorsWithMobile")]
         public async Task<IActionResult> GetAllDoctorsWithMobile(double? Latitude,double? Longitude,int? distance)
         {
-            var Doctors = await ClsDoctors.GetAllAsync(Latitude, Longitude,distance);
+            var Doctors = await unitOfWork.ClsDoctors.GetAllAsync(Latitude, Longitude,distance);
             if (Doctors == null)
             {
                 response.Result = string.Empty;
@@ -70,8 +67,8 @@ namespace Lungora.Controllers
         {
             try
             {
-                var Doctor = await ClsDoctors.GetByIdAsync(Id);
-                var workingHours = await ClsWorkingHours.GetAllByDoctorIdAsync(Id);
+                var Doctor = await unitOfWork.ClsDoctors.GetByIdAsync(Id);
+                var workingHours = await unitOfWork.ClsWorkingHours.GetAllByDoctorIdAsync(Id);
 
                 if (Doctor is null)
                 {
@@ -100,9 +97,9 @@ namespace Lungora.Controllers
         public async Task<IActionResult> CreateDoctor([FromForm] DoctorCreateDTO DoctorDTO)
         {
             // Check if the Name already exists 
-            var existsName = await ClsDoctors.GetSingleAsync(x => x.Name.ToLower() == DoctorDTO.Name.ToLower());
+            var existGmail = await unitOfWork.ClsDoctors.GetSingleAsync(x => x.EmailDoctor == DoctorDTO.EmailDoctor);
 
-            if (existsName is not null)
+            if (existGmail is not null)
                 ModelState.AddModelError("", "Doctor already exists!");
 
             var userId = User.FindFirstValue("FullName");
@@ -116,7 +113,7 @@ namespace Lungora.Controllers
                 string imageUrl = null;
                 if (DoctorDTO.ImageDoctor != null && DoctorDTO.ImageDoctor.Length > 0)
                 {
-                    imageUrl = await imageService.UploadOneImageAsync(DoctorDTO.ImageDoctor, "Doctors");
+                    imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(DoctorDTO.ImageDoctor, "Doctors");
                 }
                 Doctor Doctor = new Doctor
                 {
@@ -136,10 +133,29 @@ namespace Lungora.Controllers
                     CategoryId = DoctorDTO.CategoryId,
                     CreatedAt = DateTime.Now,
                     CreatedBy = userId,
-                    Category = await ClsCategories.GetSingleAsync(a=>a.Id==DoctorDTO.CategoryId)
+                    Category = await unitOfWork.ClsCategories.GetSingleAsync(a=>a.Id==DoctorDTO.CategoryId)
+                    
                 };
 
-                var model = await ClsDoctors.AddAsync(Doctor);
+                var model = await unitOfWork.ClsDoctors.AddAsync(Doctor);
+                await unitOfWork.SaveChangesAsync();
+
+
+
+                if (DoctorDTO.WorkingHours is not null)
+                {
+                    var workingHoursList = DoctorDTO.WorkingHours.Select(wh => new WorkingHour
+                    {
+                        DayOfWeek = wh.DayOfWeek,
+                        StartTime = wh.StartTime,
+                        EndTime = wh.EndTime,
+                        DoctorId = model.Id
+                    }).ToList();
+
+                    await unitOfWork.ClsWorkingHours.AddRangeAsync(workingHoursList);
+                    await unitOfWork.SaveChangesAsync();
+                }
+
 
                 response.Result = model;
                 response.StatusCode = HttpStatusCode.Created;
@@ -170,7 +186,7 @@ namespace Lungora.Controllers
             {
                 try
                 {
-                    var currentDoctor = await ClsDoctors.GetSingleAsync(x => x.Id == Id);
+                    var currentDoctor = await unitOfWork.ClsDoctors.GetSingleAsync(x => x.Id == Id);
 
                     if (currentDoctor is null)
                     {
@@ -183,7 +199,7 @@ namespace Lungora.Controllers
                     string imageUrl = null;
                     if (DoctorUpdateDTO.ImageDoctor != null && DoctorUpdateDTO.ImageDoctor.Length > 0)
                     {
-                        imageUrl = await imageService.UploadOneImageAsync(DoctorUpdateDTO.ImageDoctor, "Doctors");
+                        imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(DoctorUpdateDTO.ImageDoctor, "Doctors");
                     }
                     else
                     {
@@ -208,11 +224,14 @@ namespace Lungora.Controllers
                     currentDoctor.CreatedBy = currentDoctor.CreatedBy;
                     currentDoctor.UpdatedAt = DateTime.Now;
                     currentDoctor.UpdatedBy = Name;
-                    currentDoctor.Category = await ClsCategories.GetSingleAsync(a => a.Id == DoctorUpdateDTO.CategoryId);
+                    currentDoctor.Category = await unitOfWork.ClsCategories.GetSingleAsync(a => a.Id == DoctorUpdateDTO.CategoryId);
 
-                    await ClsDoctors.UpdateAsync(Id, currentDoctor);
+                    await unitOfWork.ClsDoctors.UpdateAsync(Id, currentDoctor);
 
-                    response.Result = currentDoctor;
+                    var affectedRows = await unitOfWork.SaveChangesAsync();
+
+
+                    response.Result =new { currentDoctor, affectedRows };
                     response.StatusCode = HttpStatusCode.OK;
                     response.IsSuccess = true;
                     return Ok(response);
@@ -245,7 +264,8 @@ namespace Lungora.Controllers
             {
 
 
-                await ClsDoctors.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.ClsDoctors.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.SaveChangesAsync();
 
                 response.Result = new { message = "Removed Sucssfully" };
                 response.StatusCode = HttpStatusCode.OK;

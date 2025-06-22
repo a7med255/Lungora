@@ -37,7 +37,6 @@ namespace Lungora.Bl.Repositories
             try
             {
                 await dbSet.AddAsync(Entity);
-                await context.SaveChangesAsync();
 
                 return Entity;
             }
@@ -46,6 +45,11 @@ namespace Lungora.Bl.Repositories
                 return default(T);
             }
         }
+        public async Task AddRangeAsync(IEnumerable<T> entities)
+        {
+            await context.Set<T>().AddRangeAsync(entities);
+        }
+
         public async Task RemoveAsync(Expression<Func<T, bool>> filter)
         {
             var res = await GetSingleAsync(filter);
@@ -53,7 +57,6 @@ namespace Lungora.Bl.Repositories
             if (res is not null)
             {
                 dbSet.Remove(res);
-                await context.SaveChangesAsync();
             }
             else
                 throw new Exception("Not found!");
