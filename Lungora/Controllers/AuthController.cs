@@ -23,19 +23,16 @@ namespace Lungora.Controllers
     public class AuthController : ControllerBase
     {
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly IUserService userService;
+        private readonly IUnitOfWork unitOfWork;
         private readonly IEmailService emailService;
-        private readonly IImageService imageService;
         private readonly API_Resonse response;
 
-        public AuthController(UserManager<ApplicationUser> userManager, IUserService userService,
-            IEmailService emailService, IImageService imageService)
+        public AuthController(UserManager<ApplicationUser> userManager,IUnitOfWork unitOfWork, IEmailService emailService)
         {
             this.userManager = userManager;
-            this.userService = userService;
-            this.emailService = emailService;
-            this.imageService = imageService;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
+            this.emailService = emailService;
         }
 
         [HttpPost("Register")]
@@ -60,7 +57,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var res = await userService.CreateUserAsync(registerDTO);
+            var res = await unitOfWork.UserService.CreateUserAsync(registerDTO);
 
             if (!res.IsAuthenticated)
             {
@@ -106,7 +103,8 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var res = await userService.CreateAdminAsync(registerDTO);
+            var res = await unitOfWork.UserService.CreateAdminAsync(registerDTO);
+
 
             if (!res.IsAuthenticated)
             {
@@ -116,6 +114,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
+            await unitOfWork.SaveChangesAsync();
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.Created;
@@ -142,7 +141,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var res = await userService.GetTokenAsync(loginDTO);
+            var res = await unitOfWork.UserService.GetTokenAsync(loginDTO);
 
             if (!res.IsAuthenticated)
             {
@@ -176,7 +175,7 @@ namespace Lungora.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllUsersAsync()
         {
-            var users = await userService.GetAllUsersAsync();
+            var users = await unitOfWork.UserService.GetAllUsersAsync();
 
             if (users == null)
             {
@@ -211,7 +210,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }   
 
-            var user = await userService.GetSingleAsync(u => u.Id == UserId);
+            var user = await unitOfWork.UserService.GetSingleAsync(u => u.Id == UserId);
             if (user == null)
             {
                 response.IsSuccess = false;
@@ -224,7 +223,7 @@ namespace Lungora.Controllers
 
             if (!string.IsNullOrEmpty(editUser.Email))
             {
-                var existingUserWithEmail = await userService.GetSingleAsync(u => u.Email == editUser.Email && u.Id != UserId);
+                var existingUserWithEmail = await unitOfWork.UserService.GetSingleAsync(u => u.Email == editUser.Email && u.Id != UserId);
                 if (existingUserWithEmail != null)
                 {
                     response.IsSuccess = false;
@@ -239,7 +238,7 @@ namespace Lungora.Controllers
             string imageUrl = null;
             if (editUser.ImageUser != null && editUser.ImageUser.Length > 0)
             {
-                imageUrl = await imageService.UploadOneImageAsync(editUser.ImageUser, "Users");
+                imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(editUser.ImageUser, "Users");
             }
             else
             {
@@ -250,7 +249,7 @@ namespace Lungora.Controllers
             user.IsDeleted = (!editUser.IsActive) ?? user.IsDeleted;
             user.ImageUser = imageUrl;
 
-            var updateResult = await userService.UpdateUserAsync(UserId,imageUrl, editUser);
+            var updateResult = await unitOfWork.UserService.UpdateUserAsync(UserId,imageUrl, editUser);
 
             if (updateResult==null)
             {
@@ -261,6 +260,8 @@ namespace Lungora.Controllers
 
                 return StatusCode(500, response);
             }
+
+            await unitOfWork.SaveChangesAsync();
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
@@ -279,7 +280,9 @@ namespace Lungora.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "Unauthorized access" });
 
-                await userService.DeleteUserAsync(userId);
+                await unitOfWork.UserService.DeleteUserAsync(userId);
+                await unitOfWork.SaveChangesAsync();
+
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
                 response.Result = (new { message = "Account has been deactivated" });
@@ -301,7 +304,9 @@ namespace Lungora.Controllers
             try
             {
                
-                await userService.RemoveAsync(a=>a.Id==UserId);
+                await unitOfWork.UserService.RemoveAsync(a=>a.Id==UserId);
+                await unitOfWork.SaveChangesAsync();
+
                 response.IsSuccess = true;
                 response.StatusCode = HttpStatusCode.OK;
                 response.Result = (new { message = "This Account Removed it" });
@@ -607,7 +612,7 @@ namespace Lungora.Controllers
             string imageUrl = null;
             if (editInfoDTO.ImageUser != null && editInfoDTO.ImageUser.Length > 0)
             {
-                imageUrl = await imageService.UploadOneImageAsync(editInfoDTO.ImageUser, "Users");
+                imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(editInfoDTO.ImageUser, "Users");
             }
             else
             {
@@ -735,7 +740,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var res = await userService.AddRoleAsync(addRoleDto);
+            var res = await unitOfWork.UserService.AddRoleAsync(addRoleDto);
 
             if (!string.IsNullOrEmpty(res))
             {
@@ -744,6 +749,7 @@ namespace Lungora.Controllers
                 response.Errors.Add(res);
                 return BadRequest(response);
             }
+            await unitOfWork.SaveChangesAsync();
 
             response.IsSuccess = true;
             response.StatusCode = HttpStatusCode.OK;
@@ -765,7 +771,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var result = await userService.RefreshTokenAsync(refreshToken);
+            var result = await unitOfWork.UserService.RefreshTokenAsync(refreshToken);
 
             if (!result.IsAuthenticated)
             {
@@ -807,7 +813,7 @@ namespace Lungora.Controllers
                 return BadRequest(response);
             }
 
-            var result = await userService.RevokeTokenAsync(token);
+            var result = await unitOfWork.UserService.RevokeTokenAsync(token);
 
             if (!result)
             {

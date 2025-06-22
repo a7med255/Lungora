@@ -1,8 +1,8 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Lungora.Dtos.WorkingHourDtos
 {
-    public class WorkingHourCreateDTO
+    public class WorkingHourDTO
     {
         [Required]
         public DayOfWeek DayOfWeek { get; set; }
@@ -10,7 +10,5 @@ namespace Lungora.Dtos.WorkingHourDtos
         public TimeSpan StartTime { get; set; }
         [Required]
         public TimeSpan EndTime { get; set; }
-        [Required]
-        public int DoctorId { get; set; }
     }
 }

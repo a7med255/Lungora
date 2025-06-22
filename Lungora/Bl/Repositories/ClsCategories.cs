@@ -18,12 +18,18 @@ namespace Lungora.Bl.Repositories
         {
             try
             {
-                var Categories = await context.TbCategories.ToListAsync();
+                var Categories = await context.TbCategories.Include(a=>a.Articles).ToListAsync();
 
                 return Categories.Select(c => new CategoryDto
                 {
                     Id = c.Id,
-                    CategoryName = c.CategoryName
+                    CategoryName = c.CategoryName,
+                    Articles = c.Articles.Select(a => new ArticlesDto
+                    {
+                        Id = a.Id,
+                        Title = a.Title,
+                        Description = a.Description
+                    }).ToList()
                 }).ToList();
             }
             catch{
@@ -50,7 +56,7 @@ namespace Lungora.Bl.Repositories
                         Description = c.Description,
                         Title = c.Title,
                     }
-                        ).ToList()
+                     ).ToList()
                 };
             }
             catch
@@ -69,7 +75,6 @@ namespace Lungora.Bl.Repositories
                 UpdatedCategory.UpdatedAt= DateTime.Now;
 
                 context.Update(UpdatedCategory).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                await context.SaveChangesAsync();
                 return category;
             }
             return new Category();

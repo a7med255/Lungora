@@ -1,5 +1,6 @@
 ﻿using Lungora.Bl;
 using Lungora.Bl.Interfaces;
+using Lungora.Migrations;
 using Lungora.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -38,18 +39,10 @@ namespace Lungora.Controllers
                 var oneWeekAgo = now.AddDays(-7);
 
                 // 1. All doctors (Name, Image, Location only)
-                var allDoctors = await context.TbDoctors
-                    .Select(d => new
-                    {
-                        d.Name,
-                        d.ImageDoctor,
-                        d.Latitude,
-                        d.Longitude
-                    })
-                    .ToListAsync();
+              
 
                 // 2. 5 Random Doctors (Full data)
-                var randomDoctorsFull = await context.TbDoctors
+                var randomDoctorsFull = await context.TbDoctors.Include(a=>a.Category).Include(a=>a.WorkingHours)
                     .OrderBy(_ => Guid.NewGuid())
                     .Take(5)
                     .ToListAsync();
@@ -57,8 +50,18 @@ namespace Lungora.Controllers
                 // 3. 4 Random Articles (random)
                 var randomArticles = await context.TbArticles
                     .OrderBy(_ => Guid.NewGuid())
-                    .Take(4)
+                    .Take(5)
                     .ToListAsync();
+
+                var totalDoctors = await context.TbDoctors
+                  .CountAsync();
+
+                var DoctorsLastWeek = await context.TbDoctors
+                    .CountAsync(a=> a.CreatedAt >= oneWeekAgo);
+
+                var DoctorPercentage = totalDoctors == 0 ? 0 :
+                    Math.Round((double)DoctorsLastWeek / totalDoctors * 100, 2);
+
 
                 // 4. Users: Active Count & Weekly Percentage
                 var totalActiveUsers = await userManager.Users
@@ -92,15 +95,29 @@ namespace Lungora.Controllers
                     })
                     .ToList();
 
+                var models=await context.UserAIResults.OrderByDescending(a=>a.CreatedAt).Include(a=>a.User).Take(5)
+                    .Select(a=> new
+                    {
+                        user=a.User.Email,
+                        CreatedAt = a.CreatedAt,
+                        Result=a.Prediction.ToString(),
+                        status = a.Status.ToString(),
+                    })
+                    .ToListAsync();
+
+              
+
                 // Final response
                 response.Result = new
                 {
-                    AllDoctors = allDoctors,
                     RandomDoctorsFullData = randomDoctorsFull,
                     RandomArticles = randomArticles,
+                    TotalDoctors = totalDoctors,
+                    DoctorsLastWeekPercentage = DoctorPercentage,
                     ActiveUserCount = totalActiveUsers,
                     ActiveUsersLastWeekPercentage = activePercentage,
-                    PredictionStats = predictionStats
+                    PredictionStats = predictionStats,
+                    AIResult= models
                 };
 
                 response.StatusCode = HttpStatusCode.OK;

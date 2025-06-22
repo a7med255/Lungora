@@ -17,12 +17,12 @@ namespace Lungora.Controllers
     {
 
         private readonly API_Resonse response;
-        private readonly ICategory clsCategories;
+        private readonly IUnitOfWork unitOfWork;
         private readonly UserManager<ApplicationUser> userManager;
 
-        public CategoryController( ICategory category, UserManager<ApplicationUser> _userManager)
+        public CategoryController( IUnitOfWork unitOfWork, UserManager<ApplicationUser> _userManager)
         {
-            clsCategories = category;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
             userManager = _userManager;
         }
@@ -30,7 +30,7 @@ namespace Lungora.Controllers
         [HttpGet("GetAllCategories")]
         public async Task<IActionResult> GetAllCategories()
         {
-            var categories = await clsCategories.GetAllAsync();
+            var categories = await unitOfWork.ClsCategories.GetAllAsync();
             if (categories == null)
             {
                 response.Result =string.Empty;
@@ -49,7 +49,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var category = await clsCategories.GetSingleAsync(x => x.Id == Id);
+                var category = await unitOfWork.ClsCategories.GetSingleAsync(x => x.Id == Id);
                 if (category is null)
                 {
 
@@ -78,7 +78,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var category = await clsCategories.GetById(CategoryId);
+                var category = await unitOfWork.ClsCategories.GetById(CategoryId);
 
                 if (category.CategoryName is null)
                 {
@@ -108,7 +108,7 @@ namespace Lungora.Controllers
         public async Task<IActionResult> CreateCategory(CategoryCreateDTO categoryDTO)
         {
             // Check if the Name already exists 
-            var existsName = await clsCategories.GetSingleAsync(x => x.CategoryName.ToLower() == categoryDTO.CategoryName.ToLower());
+            var existsName = await unitOfWork.ClsCategories.GetSingleAsync(x => x.CategoryName.ToLower() == categoryDTO.CategoryName.ToLower());
 
             if (existsName is not null)
                 ModelState.AddModelError("", "Category already exists!");
@@ -128,7 +128,9 @@ namespace Lungora.Controllers
                     CreatedBy=userId,
                 };
 
-                var model= await clsCategories.AddAsync(category);
+                var model= await unitOfWork.ClsCategories.AddAsync(category);
+                await unitOfWork.SaveChangesAsync();
+
                 response.Result=model;
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsSuccess = true;
@@ -151,7 +153,7 @@ namespace Lungora.Controllers
             // Check if the new Name already exists 
             if (categoryUpdateDTO.CategoryName is not null)
             {
-                var existsName = await clsCategories
+                var existsName = await unitOfWork.ClsCategories
                     .GetSingleAsync(x => x.CategoryName.ToLower() == categoryUpdateDTO.CategoryName.ToLower());
 
                 if (existsName is not null && existsName.Id != Id)
@@ -165,7 +167,7 @@ namespace Lungora.Controllers
             {
                 try
                 {
-                    var currentCategory = await clsCategories.GetSingleAsync(x => x.Id == Id);
+                    var currentCategory = await unitOfWork.ClsCategories.GetSingleAsync(x => x.Id == Id);
 
                     if (currentCategory is null)
                     {
@@ -182,7 +184,8 @@ namespace Lungora.Controllers
                         UpdatedAt = DateTime.Now,
                         UpdatedBy = userId
                     };
-                    await clsCategories.UpdateAsync(Id, category);
+                    await unitOfWork.ClsCategories.UpdateAsync(Id, category);
+                    await unitOfWork.SaveChangesAsync();
 
                     response.Result = category;
                     response.StatusCode = HttpStatusCode.OK;
@@ -215,9 +218,9 @@ namespace Lungora.Controllers
         {
             try
             {
+                await unitOfWork.ClsCategories.RemoveAsync(a=>a.Id==Id);
+                await unitOfWork.SaveChangesAsync();
 
-
-                await clsCategories.RemoveAsync(a=>a.Id==Id);
                 response.Result = new { message="Removed Sucssfully"};
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;

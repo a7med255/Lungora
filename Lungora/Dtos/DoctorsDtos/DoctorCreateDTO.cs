@@ -1,4 +1,6 @@
+using Lungora.Dtos.WorkingHourDtos;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.InteropServices;
 
 namespace Lungora.Dtos.DoctorsDtos
 {
@@ -45,7 +47,10 @@ namespace Lungora.Dtos.DoctorsDtos
         public double Longitude { get; set; }
         [Required]
         public int CategoryId { get; set; }
+        public List<WorkingHourDTO>? WorkingHours { get; set; }
+
         [Required]
         public IFormFile ImageDoctor { get; set; }
+
     }
 }

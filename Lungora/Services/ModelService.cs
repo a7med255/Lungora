@@ -33,7 +33,7 @@ namespace Lungora.Services
                 return histories.Select(c => new HistoryDto
                 {
                     Id = c.Id,
-                    UserId = c.User.Name,
+                    UserId = c.User.Email,
                     ImagePath = c.ImagePath,
                     CreatedAt = c.CreatedAt,
                     Prediction = c.Prediction.ToString(),

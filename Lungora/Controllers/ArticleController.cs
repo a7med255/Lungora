@@ -16,14 +16,12 @@ namespace Lungora.Controllers
     [ApiController]
     public class ArticleController : ControllerBase
     {
-        private readonly IArticle ClsArticles;
-        private readonly IImageService imageService;
+        private readonly IUnitOfWork unitOfWork;
         private readonly API_Resonse response;
-        public ArticleController(IArticle article, IImageService imageService)
+        public ArticleController(IUnitOfWork unitOfWork)
         {
-            ClsArticles = article;
+            this.unitOfWork = unitOfWork;
             response = new API_Resonse();
-            this.imageService = imageService;
         }
         [HttpGet("GetAllArticles")]
         [Authorize]
@@ -31,7 +29,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var Articles = await ClsArticles.GetAllAsync();
+                var Articles = await unitOfWork.ClsArticles.GetAllAsync();
                 response.Result = new { Article = Articles };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
@@ -50,7 +48,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var Article = await ClsArticles.GetSingleAsync(x => x.Id == Id);
+                var Article = await unitOfWork.ClsArticles.GetSingleAsync(x => x.Id == Id);
                 if (Article is null)
                 {
                     response.Result = string.Empty;
@@ -79,9 +77,10 @@ namespace Lungora.Controllers
         {
             try
             {
-                var articles = await ClsArticles.GetByCategoryId(CategoryId);
+                var articles = await unitOfWork.ClsArticles.GetByCategoryId(CategoryId);
+                var NumerOfArticles = articles.Count();
 
-                response.Result = articles;
+                response.Result = new{articles,NumerOfArticles};
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
                 return Ok(response);
@@ -96,11 +95,11 @@ namespace Lungora.Controllers
             }
         }
         [HttpGet("GetArticleByIdWithMobile/{Id}")]
-        public async Task<IActionResult> GetArticleByIdWithMobile(int Id)
+        public async Task<IActionResult> GetArticleByCategoryIdWithMobile(int Id)
         {
             try
             {
-                var Article = await ClsArticles.GetById(Id);
+                var Article = await unitOfWork.ClsArticles.GetById(Id);
                 if (Article is null)
                 {
                     response.Result = string.Empty;
@@ -128,7 +127,7 @@ namespace Lungora.Controllers
         public async Task<IActionResult> CreateArticle([FromForm]ArticleCreateDTO ArticleDTO)
         {
             // Check if the Title already exists 
-            var existsTitle = await ClsArticles.GetSingleAsync(x => x.Title.ToLower() == ArticleDTO.Title.ToLower());
+            var existsTitle = await unitOfWork.ClsArticles.GetSingleAsync(x => x.Title.ToLower() == ArticleDTO.Title.ToLower());
 
             if (existsTitle is not null)
                 ModelState.AddModelError("", "Article already exists!");
@@ -144,7 +143,7 @@ namespace Lungora.Controllers
                 string imageUrl = null;
                 if (ArticleDTO.CoverImage != null && ArticleDTO.CoverImage.Length > 0)
                 {
-                    imageUrl = await imageService.UploadOneImageAsync(ArticleDTO.CoverImage, "Articles");
+                    imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(ArticleDTO.CoverImage, "Articles");
                 }
                 Article Article = new Article
                 {
@@ -157,7 +156,9 @@ namespace Lungora.Controllers
                     CreatedBy = userId,
                 };
 
-                var model = await ClsArticles.AddAsync(Article);
+                var model = await unitOfWork.ClsArticles.AddAsync(Article);
+                await unitOfWork.SaveChangesAsync();
+
                 response.Result = model;
                 response.StatusCode = HttpStatusCode.Created;
                 response.IsSuccess = true;
@@ -180,7 +181,7 @@ namespace Lungora.Controllers
             // Check if the new Name already exists 
             if (ArticleUpdateDTO.Title is not null)
             {
-                var existsName = await ClsArticles
+                var existsName = await unitOfWork.ClsArticles
                     .GetSingleAsync(x => x.Title.ToLower() == ArticleUpdateDTO.Title.ToLower());
 
                 if (existsName is not null && existsName.Id != Id)
@@ -198,7 +199,7 @@ namespace Lungora.Controllers
             {
                 try
                 {
-                    var currentArticle = await ClsArticles.GetSingleAsync(x => x.Id == Id);
+                    var currentArticle = await unitOfWork.ClsArticles.GetSingleAsync(x => x.Id == Id);
 
                     if (currentArticle is null)
                     {
@@ -211,7 +212,7 @@ namespace Lungora.Controllers
                     string imageUrl = null;
                     if (ArticleUpdateDTO.CoverImage != null && ArticleUpdateDTO.CoverImage.Length > 0)
                     {
-                        imageUrl = await imageService.UploadOneImageAsync(ArticleUpdateDTO.CoverImage, "Articles");
+                        imageUrl = await unitOfWork.IImageService.UploadOneImageAsync(ArticleUpdateDTO.CoverImage, "Articles");
                     }
                     else
                     {
@@ -226,7 +227,8 @@ namespace Lungora.Controllers
                             UpdatedAt = DateTime.Now,
                             UpdatedBy = Name
                         };
-                    await ClsArticles.UpdateAsync(Id, Article);
+                    await unitOfWork.ClsArticles.UpdateAsync(Id, Article);
+                    await unitOfWork.SaveChangesAsync();
 
                     response.Result = Article;
                     response.StatusCode = HttpStatusCode.OK;
@@ -259,9 +261,8 @@ namespace Lungora.Controllers
         {
             try
             {
-
-
-                await ClsArticles.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.ClsArticles.RemoveAsync(a => a.Id == Id);
+                await unitOfWork.SaveChangesAsync();
 
                 response.Result = new { message = "Removed Sucssfully" };
                 response.StatusCode = HttpStatusCode.OK;

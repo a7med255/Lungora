@@ -39,6 +39,8 @@ namespace Lungora.Bl.Repositories
 
                 List<(Doctor doctor, double? distance)> doctorWithDistances = new();
 
+                
+
                 foreach (var doctor in doctors)
                 {
                     double? calculatedDistance = null;
@@ -51,16 +53,29 @@ namespace Lungora.Bl.Repositories
                     doctorWithDistances.Add((doctor, calculatedDistance));
                 }
 
+
                 if (latitude.HasValue && longitude.HasValue)
                 {
-                    int effectiveDistance = distance ?? 10;
+                    int effectiveDistance = distance ?? 40;
 
                     doctorWithDistances = doctorWithDistances
                         .Where(x => x.distance.HasValue && x.distance.Value <= effectiveDistance)
                         .OrderBy(x => x.distance)
                         .ToList();
                 }
+                if (doctorWithDistances.Count == 0)
+                {
 
+                    return doctors.Select(x => new DoctorDto
+                    {
+                        Id = x.Id,
+                        CategoryName = x.Category?.CategoryName,
+                        Name = x.Name,
+                        ImageDoctor = x.ImageDoctor,
+                        WhatsAppLink = x.WhatsAppLink,
+                        TimeAvailable = GetNextAvailableTime(x.WorkingHours),
+                    }).ToList();
+                }
                 return doctorWithDistances.Select(x => new DoctorDto
                 {
                     Id = x.doctor.Id,
@@ -161,7 +176,6 @@ namespace Lungora.Bl.Repositories
                 UpdatedDoctor.CategoryId = Doctor.CategoryId;
 
                 context.Update(UpdatedDoctor).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                await context.SaveChangesAsync();
                 return UpdatedDoctor;
             }
             return null;
@@ -171,27 +185,39 @@ namespace Lungora.Bl.Repositories
         private string GetNextAvailableTime(IEnumerable<WorkingHour> workingHours)
         {
             var now = DateTime.Now;
-            var today = now.DayOfWeek.ToString();
+            var today = now.DayOfWeek;
             var currentTime = now.TimeOfDay;
 
             var todayAvailable = workingHours
                 .Where(a => a.DayOfWeek == today && a.StartTime > currentTime)
                 .OrderBy(a => a.StartTime)
-                .Select(a => "available from" + a.StartTime + " - " + a.EndTime)
                 .FirstOrDefault();
 
             if (todayAvailable != null)
-                return todayAvailable;
+            {
+                return $"Available Today from {todayAvailable.StartTime:hh\\:mm} - {todayAvailable.EndTime:hh\\:mm}";
+            }
 
-            var tomorrow = now.AddDays(1).DayOfWeek.ToString();
             var nextAvailable = workingHours
-                .Where(a => a.DayOfWeek == tomorrow)
-                .OrderBy(a => a.StartTime)
-                .Select(a => "available from"+ a.StartTime + " - " + a.EndTime)
+                .Where(a =>
+                    (int)a.DayOfWeek > (int)today ||
+                    (int)a.DayOfWeek < (int)today) 
+                .OrderBy(a => ((int)a.DayOfWeek - (int)today + 7) % 7)
+                .ThenBy(a => a.StartTime)
                 .FirstOrDefault();
 
-            return nextAvailable ?? "Not There Time Avilable";
+            if (nextAvailable != null)
+            {
+                var nextDayName = nextAvailable.DayOfWeek == ((DayOfWeek)(((int)today + 1) % 7))
+                    ? "Tomorrow"
+                    : nextAvailable.DayOfWeek.ToString();
+
+                return $"Available {nextDayName} from {nextAvailable.StartTime:hh\\:mm} - {nextAvailable.EndTime:hh\\:mm}";
+            }
+
+            return "No available time";
         }
+
 
     }
 }

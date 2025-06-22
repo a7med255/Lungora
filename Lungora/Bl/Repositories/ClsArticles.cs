@@ -89,7 +89,6 @@ namespace Lungora.Bl.Repositories
             existingArticle.UpdatedBy = updatedArticle.UpdatedBy;
 
             context.TbArticles.Update(existingArticle); // EF automatically tracks the entity
-            await context.SaveChangesAsync();
 
             return existingArticle;
         }
