@@ -1,6 +1,7 @@
 using Lungora.Bl.Interfaces;
 using Lungora.Dtos.CategoryDtos;
 using Lungora.Dtos.DoctorsDtos;
+using Lungora.Helpers;
 using Lungora.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +10,11 @@ namespace Lungora.Bl.Repositories
     public class ClsDoctors : Repository<Doctor>,IDoctor
     {
         private readonly LungoraContext context;
-        public ClsDoctors(LungoraContext context):base(context)
+        private readonly IDoctorAvailabilityService _availabilityService;
+        public ClsDoctors(LungoraContext context, IDoctorAvailabilityService availabilityService) : base(context)
         {
             this.context = context;
+            _availabilityService = availabilityService;
         }
         public async Task<IEnumerable<Doctor>> GetAll()
         {
@@ -38,7 +41,6 @@ namespace Lungora.Bl.Repositories
                     .ToListAsync();
 
                 List<(Doctor doctor, double? distance)> doctorWithDistances = new();
-
                 
 
                 foreach (var doctor in doctors)
@@ -47,12 +49,11 @@ namespace Lungora.Bl.Repositories
 
                     if (latitude.HasValue && longitude.HasValue)
                     {
-                        calculatedDistance = GetDistanceInKm(latitude.Value, longitude.Value, doctor.Latitude, doctor.Longitude);
+                        calculatedDistance = GeoHelper.GetDistanceInKm(latitude.Value, longitude.Value, doctor.Latitude, doctor.Longitude);
                     }
 
                     doctorWithDistances.Add((doctor, calculatedDistance));
                 }
-
 
                 if (latitude.HasValue && longitude.HasValue)
                 {
@@ -63,6 +64,7 @@ namespace Lungora.Bl.Repositories
                         .OrderBy(x => x.distance)
                         .ToList();
                 }
+
                 if (doctorWithDistances.Count == 0)
                 {
 
@@ -73,9 +75,10 @@ namespace Lungora.Bl.Repositories
                         Name = x.Name,
                         ImageDoctor = x.ImageDoctor,
                         WhatsAppLink = x.WhatsAppLink,
-                        TimeAvailable = GetNextAvailableTime(x.WorkingHours),
+                        TimeAvailable = _availabilityService.GetNextAvailableTime(x.WorkingHours),
                     }).ToList();
                 }
+
                 return doctorWithDistances.Select(x => new DoctorDto
                 {
                     Id = x.doctor.Id,
@@ -83,39 +86,15 @@ namespace Lungora.Bl.Repositories
                     Name = x.doctor.Name,
                     ImageDoctor = x.doctor.ImageDoctor,
                     WhatsAppLink = x.doctor.WhatsAppLink,
-                    TimeAvailable = GetNextAvailableTime(x.doctor.WorkingHours),
+                    TimeAvailable = _availabilityService.GetNextAvailableTime(x.doctor.WorkingHours),
                 }).ToList();
+                    
             }
             catch
             {
                 return new List<DoctorDto>();
             }
         }
-
-
-
-
-        private double GetDistanceInKm(double lat1, double lon1, double lat2, double lon2)
-        {
-            const double R = 6371; // Earth's radius in KM
-
-            double dLat = ToRadians(lat2 - lat1);
-            double dLon = ToRadians(lon2 - lon1);
-
-            double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
-                       Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
-                       Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
-
-            double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
-
-            return R * c;
-        }
-
-        private double ToRadians(double degrees)
-        {
-            return degrees * (Math.PI / 180);
-        }
-
 
         public async Task<DoctorDetailsDto> GetByIdAsync(int id)
         {
@@ -182,41 +161,7 @@ namespace Lungora.Bl.Repositories
         }
 
 
-        private string GetNextAvailableTime(IEnumerable<WorkingHour> workingHours)
-        {
-            var now = DateTime.Now;
-            var today = now.DayOfWeek;
-            var currentTime = now.TimeOfDay;
-
-            var todayAvailable = workingHours
-                .Where(a => a.DayOfWeek == today && a.StartTime > currentTime)
-                .OrderBy(a => a.StartTime)
-                .FirstOrDefault();
-
-            if (todayAvailable != null)
-            {
-                return $"Available Today from {todayAvailable.StartTime:hh\\:mm} - {todayAvailable.EndTime:hh\\:mm}";
-            }
-
-            var nextAvailable = workingHours
-                .Where(a =>
-                    (int)a.DayOfWeek > (int)today ||
-                    (int)a.DayOfWeek < (int)today) 
-                .OrderBy(a => ((int)a.DayOfWeek - (int)today + 7) % 7)
-                .ThenBy(a => a.StartTime)
-                .FirstOrDefault();
-
-            if (nextAvailable != null)
-            {
-                var nextDayName = nextAvailable.DayOfWeek == ((DayOfWeek)(((int)today + 1) % 7))
-                    ? "Tomorrow"
-                    : nextAvailable.DayOfWeek.ToString();
-
-                return $"Available {nextDayName} from {nextAvailable.StartTime:hh\\:mm} - {nextAvailable.EndTime:hh\\:mm}";
-            }
-
-            return "No available time";
-        }
+        
 
 
     }

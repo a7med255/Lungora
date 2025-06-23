@@ -160,15 +160,6 @@ namespace Lungora.Controllers
 
             try
             {
-                var exists = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.DayOfWeek == dto.DayOfWeek && x.DoctorId == dto.DoctorId);
-                if (exists is not null)
-                {
-                    response.Result = string.Empty;
-                    response.StatusCode = HttpStatusCode.Conflict;
-                    response.IsSuccess = false;
-                    response.Errors.Add("A working hour with the same DayOfWeek already exists.");
-                    return Conflict(response);
-                }
 
                 var current = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.Id == id);
 
@@ -181,11 +172,23 @@ namespace Lungora.Controllers
                     return NotFound(response);
                 }
 
+                var exists = await unitOfWork.ClsWorkingHours.GetSingleAsync(x => x.DayOfWeek == dto.DayOfWeek && x.DoctorId == current.DoctorId && x.Id != id);
+
+                if (exists is not null)
+                {
+                    response.Result = string.Empty;
+                    response.StatusCode = HttpStatusCode.Conflict;
+                    response.IsSuccess = false;
+                    response.Errors.Add("A working hour with the same DayOfWeek already exists.");
+                    return Conflict(response);
+                }
+
                 // Update fields
                 current.DayOfWeek = dto.DayOfWeek;
                 current.StartTime = dto.StartTime;
                 current.EndTime = dto.EndTime;
-                current.DoctorId = dto.DoctorId;
+
+
                 if (!current.IsValidTimeRange())
                 {
                     response.Result = string.Empty;
