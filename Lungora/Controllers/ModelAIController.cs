@@ -162,7 +162,7 @@ namespace Lungora.Controllers
         {
             try
             {
-                var History = await unitOfWork.modelService.GetSingleAsync(x => x.Id == Id);
+                var History = await unitOfWork.modelService.GetById(Id);
                 if (History is null)
                 {
                     response.Result = string.Empty;
@@ -171,18 +171,8 @@ namespace Lungora.Controllers
                     response.Errors.Add("Hestory does not exist.");
                     return NotFound(response);
                 }
-                var HistoryDto = new HistoryDto()
-                {
-                    Id = History.Id,
-                    UserId = History.User.Name,
-                    ImagePath = History.ImagePath,
-                    CreatedAt = History.CreatedAt,
-                    Prediction = History.Prediction.ToString(),
-                    IsSave = History.IsSave,
-                    Status = History.Status.ToString()
-                };
 
-                response.Result = HistoryDto;
+                response.Result = History;
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
                 return Ok(response);
