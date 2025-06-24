@@ -80,7 +80,7 @@ namespace Lungora.Controllers
                 var articles = await unitOfWork.ClsArticles.GetByCategoryId(CategoryId);
                 var NumerOfArticles = articles.Count();
 
-                response.Result = new{articles,NumerOfArticles};
+                response.Result =new { articles= articles, NumerOfArticles= NumerOfArticles };
                 response.StatusCode = HttpStatusCode.OK;
                 response.IsSuccess = true;
                 return Ok(response);

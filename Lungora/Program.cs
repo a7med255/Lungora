@@ -40,6 +40,8 @@ builder.Services.AddScoped<IArticle, ClsArticles>();
 builder.Services.AddScoped<ICategory, ClsCategories>();
 builder.Services.AddScoped<IDoctor, ClsDoctors>();
 builder.Services.AddScoped<IWorkingHour, ClsWorkingHours>();
+builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
+
 builder.Services.AddHttpClient("AIService", client =>
 {
     client.BaseAddress = new Uri("https://lakes-warriors-received-easy.trycloudflare.com/predict");

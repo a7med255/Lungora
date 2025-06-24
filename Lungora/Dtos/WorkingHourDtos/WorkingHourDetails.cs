@@ -2,14 +2,12 @@
 
 namespace Lungora.Dtos.WorkingHourDtos
 {
-    public class WorkingHourUpdateDTO
+    public class WorkingHourDetails
     {
-        [Required]
-        public DayOfWeek DayOfWeek { get; set; }
-        [Required]
+        public int Id { get; set; }
+        public string? DayOfWeek { get; set; }
         public TimeSpan StartTime { get; set; }
-        [Required]
         public TimeSpan EndTime { get; set; }
-
+        public int DoctorId { get; set; }
     }
 }

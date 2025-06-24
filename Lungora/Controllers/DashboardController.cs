@@ -38,9 +38,6 @@ namespace Lungora.Controllers
                 var now = DateTime.UtcNow;
                 var oneWeekAgo = now.AddDays(-7);
 
-                // 1. All doctors (Name, Image, Location only)
-              
-
                 // 2. 5 Random Doctors (Full data)
                 var randomDoctorsFull = await context.TbDoctors.Include(a=>a.Category).Include(a=>a.WorkingHours)
                     .OrderBy(_ => Guid.NewGuid())
