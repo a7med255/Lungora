@@ -31,6 +31,7 @@ namespace Lungora.Controllers
         public async Task<IActionResult> GetAllCategories()
         {
             var categories = await unitOfWork.ClsCategories.GetAllAsync();
+
             if (categories == null)
             {
                 response.Result =string.Empty;

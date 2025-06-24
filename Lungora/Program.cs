@@ -41,6 +41,7 @@ builder.Services.AddScoped<ICategory, ClsCategories>();
 builder.Services.AddScoped<IDoctor, ClsDoctors>();
 builder.Services.AddScoped<IWorkingHour, ClsWorkingHours>();
 builder.Services.AddScoped<IDoctorAvailabilityService, DoctorAvailabilityService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddHttpClient("AIService", client =>
 {

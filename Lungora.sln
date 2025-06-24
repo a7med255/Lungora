@@ -3,7 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.11.35312.102
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lungora", "Lungora\Lungora.csproj", "{2FCF4825-C30B-4C99-A186-5269883C5FBC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lungora.API", "Lungora\Lungora.API.csproj", "{2FCF4825-C30B-4C99-A186-5269883C5FBC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lungora.Application", "Lungora.Application\Lungora.Application.csproj", "{A10525B2-6338-4B25-87EB-A160C2E51C49}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lungora.Domain", "Lungora.Domain\Lungora.Domain.csproj", "{FCEBFD45-AE93-4843-8C3C-5DAA5F1A2C4A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lungora.Infrastructure", "Lungora.Infrastructure\Lungora.Infrastructure.csproj", "{3DD2DA0A-FE40-48F1-A419-ADB6E56BF8AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +21,18 @@ Global
 		{2FCF4825-C30B-4C99-A186-5269883C5FBC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2FCF4825-C30B-4C99-A186-5269883C5FBC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2FCF4825-C30B-4C99-A186-5269883C5FBC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A10525B2-6338-4B25-87EB-A160C2E51C49}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A10525B2-6338-4B25-87EB-A160C2E51C49}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A10525B2-6338-4B25-87EB-A160C2E51C49}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A10525B2-6338-4B25-87EB-A160C2E51C49}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FCEBFD45-AE93-4843-8C3C-5DAA5F1A2C4A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FCEBFD45-AE93-4843-8C3C-5DAA5F1A2C4A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FCEBFD45-AE93-4843-8C3C-5DAA5F1A2C4A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FCEBFD45-AE93-4843-8C3C-5DAA5F1A2C4A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3DD2DA0A-FE40-48F1-A419-ADB6E56BF8AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3DD2DA0A-FE40-48F1-A419-ADB6E56BF8AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3DD2DA0A-FE40-48F1-A419-ADB6E56BF8AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3DD2DA0A-FE40-48F1-A419-ADB6E56BF8AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
